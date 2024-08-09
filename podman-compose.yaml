@@ -1,0 +1,33 @@
+version: "3"
+services:
+
+  langchain:
+    build:
+      context: langchain/
+      dockerfile: Containerfile
+    image: langchain
+    volumes:
+      - ./langchain/:/langchain/:Z
+    ports:
+      - 8000:8000
+    depends_on:
+      - ollama-server
+
+  ollama-server:
+    build:
+      context: ollama/
+      dockerfile: Containerfile
+    image: ollama-server
+    ports:
+      - 11434:11434
+    volumes:
+      - ./ollama/models:/app/models/:Z
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    security_opt:
+      - "label=disable" 
