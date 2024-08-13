@@ -1,6 +1,0 @@
-langchain
-langserve[server]
-langchain-ollama
-requests
-fastapi
-uvicorn

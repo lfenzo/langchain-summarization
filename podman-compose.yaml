@@ -1,13 +1,13 @@
 version: "3"
 services:
 
-  langchain:
+  langchain-app:
     build:
-      context: langchain/
+      context: langchain-app/
       dockerfile: Containerfile
-    image: langchain
+    image: langchain-app
     volumes:
-      - ./langchain/:/langchain/:Z
+      - ./langchain-app/:/langchain-app/:Z
     ports:
       - 8000:8000
     depends_on:

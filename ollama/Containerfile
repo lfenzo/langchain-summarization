@@ -1,13 +1,14 @@
 FROM nvidia/cuda:12.4.0-devel-ubuntu22.04
 
 RUN apt update && apt install -y \
-    wget \
     bzip2 \
     curl \
     git \
     pciutils \
     ca-certificates \
     python3-pip
+
+WORKDIR /ollama
 
 COPY requirements.txt requirements.txt
 

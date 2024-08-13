@@ -1,0 +1,13 @@
+langchain
+langchain-ollama
+langchain_community
+bs4
+langserve
+requests
+fastapi
+uvicorn
+sse_starlette
+python-multipart
+pymupdf
+transformers
+python-magic
