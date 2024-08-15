@@ -27,6 +27,7 @@ async def summarize(file: UploadFile = File(...)):
         service = (
             OllamaSummarizationBuilder()
             .set_loader(file_type=magic.from_buffer(contents, mime=True), file_path=tmp_file.name)
+            .set_model('llama3.1')
             .build()
         )
 

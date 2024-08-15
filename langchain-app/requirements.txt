@@ -11,3 +11,4 @@ python-multipart
 pymupdf
 transformers
 python-magic
+redis

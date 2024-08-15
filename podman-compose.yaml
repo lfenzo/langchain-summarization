@@ -12,6 +12,7 @@ services:
       - 8000:8000
     depends_on:
       - ollama-server
+      - redis
 
   ollama-server:
     build:
@@ -31,3 +32,12 @@ services:
               capabilities: [gpu]
     security_opt:
       - "label=disable" 
+
+  redis:
+    image: redis:latest
+    ports:
+      - 6379:6379
+    volumes:
+      - ./redis/:/data/:Z
+    env_file:
+      - redis/.env
