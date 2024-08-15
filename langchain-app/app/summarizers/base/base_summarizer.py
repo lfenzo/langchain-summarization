@@ -6,7 +6,8 @@ from langchain_core.stores import BaseStore, ByteStore
 from langchain_core.document_loaders import BaseLoader
 
 
-class BaseSummarization(ABC):
+class BaseSummarizer(ABC):
+
     def __init__(
         self,
         store: BaseStore,
@@ -33,19 +34,4 @@ class BaseSummarization(ABC):
 
     def summarize(self, file_name: str) -> str:
         content = self.loader.load()
-        #doc_id = self._get_document_hash(file_name=file_name, content=content)
-
-#        if self._is_summary_in_storage(doc_id=doc_id):
-#            return "Está no storage"
-
-        summary = self.render_summary(content)
-         #self.storage.store(key=doc_id, value=summary)
-
-        return summary
-
-    def _get_document_hash(self, file_name: str, content: str) -> str:
-        """Produce a document ID to store in cache and storage."""
-        return "doc_1234"
-
-    def _is_summary_in_storage(self, doc_id: str) -> bool:
-        return True if self.store.retrieve(key=doc_id) else False
+        return self.render_summary(content)
