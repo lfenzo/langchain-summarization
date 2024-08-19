@@ -11,8 +11,11 @@ class CacheFactory:
             'redis': self._get_redis_cache,
         }
 
-    def create(self, cache_type: str) -> BaseCache:
-        return self.available_caches[cache_type]()
+    def create(self, cache_type: str, **kwargs) -> BaseCache:
+        return self.available_caches[cache_type](**kwargs)
 
-    def _get_redis_cache(self):
-        return RedisCache(redis_=Redis(host='redis', port=6379, decode_responses=True), ttl=60)
+    def _get_redis_cache(self, host: str, port: int, ttl: int = 60, decode_responses: bool = True):
+        return RedisCache(
+            redis_=Redis(host=host, port=port, decode_responses=decode_responses),
+            ttl=ttl,
+        )

@@ -11,14 +11,13 @@ class SummarizerBuilder:
 
     def __init__(self) -> None:
         self.loader = None
-        self.byte_store = None
         self.store_manager = StorageManagerFactory().create(
             manager='mongodb',
             database_name='summary_database',
             user='root',
             password='examplepassword',
         )
-        self.cache = CacheFactory().create(cache_type='redis')
+        self.cache = CacheFactory().create(cache_type='redis', host='redis', port=6379)
 
     def set_store_manager(self, manager: str, store_manager: BaseStoreManager = None, **kwargs):
         self.store_manager = (
