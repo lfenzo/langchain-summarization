@@ -13,3 +13,4 @@ transformers
 python-magic
 redis
 pymongo
+ollama
