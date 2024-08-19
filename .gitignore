@@ -2,3 +2,9 @@ env/
 __pycache__/
 ollama/models/
 .ipynb_checkpoints/
+
+redis/*
+!redis/.env
+
+mongodb/*
+!mongodb/.env
