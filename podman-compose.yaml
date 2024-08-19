@@ -13,6 +13,7 @@ services:
     depends_on:
       - ollama-server
       - redis
+      - mongodb
 
   ollama-server:
     build:
@@ -41,3 +42,12 @@ services:
       - ./redis/:/data/:Z
     env_file:
       - redis/.env
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - 27017:27017
+    volumes:
+      - ./mongodb:/data/db/:Z
+    env_file:
+      - mongodb/.env

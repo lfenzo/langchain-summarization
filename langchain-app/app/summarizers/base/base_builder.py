@@ -1,25 +1,30 @@
 from langchain_core.caches import BaseCache
-from langchain_core.stores import BaseStore, ByteStore
 from langchain_core.document_loaders import BaseLoader
 
-from app.summarizers.factories.loader_factory import LoaderFactory
-from app.summarizers.factories.cache_factory import CacheFactory
+from app.factories.cache_factory import CacheFactory
+from app.factories.loader_factory import LoaderFactory
+from app.factories.store_manager_factory import StorageManagerFactory
+from app.storage.base_store_manager import BaseStoreManager
 
 
 class SummarizerBuilder:
 
     def __init__(self) -> None:
-        self.store = None
         self.loader = None
         self.byte_store = None
+        self.store_manager = StorageManagerFactory().create(
+            manager='mongodb',
+            database_name='summary_database',
+            user='root',
+            password='examplepassword',
+        )
         self.cache = CacheFactory().create(cache_type='redis')
 
-    def set_store(self, store: BaseStore):
-        self.store = store
-        return self
-
-    def set_byte_store(self, byte_store: ByteStore):
-        self.byte_store = byte_store
+    def set_store_manager(self, manager: str, store_manager: BaseStoreManager = None, **kwargs):
+        self.store_manager = (
+            store_manager if store_manager is not None
+            else StorageManagerFactory().create(manager=manager, **kwargs)
+        )
         return self
 
     def set_loader(self, file_type: str = None, file_path: str = None, loader: BaseLoader = None):
@@ -38,8 +43,7 @@ class SummarizerBuilder:
 
     def build(self) -> dict:
         return {
-            'store': self.store,
-            'loader': self.loader,
-            'byte_store': self.byte_store,
             'cache': self.cache,
+            'loader': self.loader,
+            'store_manager': self.store_manager,
         }

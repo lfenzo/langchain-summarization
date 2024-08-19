@@ -15,4 +15,4 @@ class CacheFactory:
         return self.available_caches[cache_type]()
 
     def _get_redis_cache(self):
-        return RedisCache(redis_=Redis(host='redis', port=6379, decode_responses=True, ttl=60))
+        return RedisCache(redis_=Redis(host='redis', port=6379, decode_responses=True), ttl=60)

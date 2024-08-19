@@ -12,3 +12,4 @@ pymupdf
 transformers
 python-magic
 redis
+pymongo
