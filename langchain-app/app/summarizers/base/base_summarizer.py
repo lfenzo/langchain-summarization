@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, AsyncGenerator
 
+from fastapi.responses import StreamingResponse
 from langchain_core.messages import AIMessage
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.runnables.base import Runnable
@@ -34,22 +35,30 @@ class BaseSummarizer(ABC):
         pass
 
     @abstractmethod
-    def get_metadata(self, file_name: str, content: AIMessage) -> dict[str, Any]:
+    def get_metadata(self, file_name: str, content) -> dict[str, Any]:
         pass
 
     def get_document_bytes(self) -> bytes:
         with open(self.loader.file_path, 'rb') as file:
             return file.read()
 
-    def summarize(self, file_name: str) -> str:
+    async def summarize(self, file_name: str) -> str:
         content = self.loader.load()
-        summary = self.render_summary(content)
-        metadata = self.get_metadata(file_name=file_name, content=summary)
-        document_bytes = self.get_document_bytes()
+        summary_parts = []
 
-        self.store_manager.store_summary(
-            metadata=metadata,
-            summary=summary.content,
-            document=document_bytes,
-        )
-        return summary
+        async def stream_summary() -> AsyncGenerator[str, None]:
+            async for chunk in self.render_summary(content):
+                summary_parts.append(chunk)
+                yield chunk
+
+            full_summary = "".join(summary_parts)
+            document_bytes = self.get_document_bytes()
+            metadata = self.get_metadata(file_name=file_name, content=full_summary)
+
+            await self.store_manager.store_summary(
+                metadata=metadata,
+                summary=full_summary,
+                document=document_bytes,
+            )
+
+        return StreamingResponse(stream_summary(), media_type="text/plain")

@@ -1,9 +1,9 @@
-from typing import Any
+from typing import Any, Iterator
 
 import ollama
 from langchain_ollama import ChatOllama
+from langchain_core.output_parsers import StrOutputParser
 from langchain_core.caches import BaseCache
-from langchain_core.messages import AIMessage
 
 from app.summarizers.base.base_summarizer import BaseSummarizer
 
@@ -20,7 +20,11 @@ class OllamaSummarizer(BaseSummarizer):
         self.model = model
         self.base_url = base_url
         self._check_model_is_pulled_in_server()
-        runnable = self.prompt | ChatOllama(model=self.model, base_url=self.base_url, cache=cache)
+        runnable = (
+                self.prompt
+                | ChatOllama(model=self.model, base_url=self.base_url, cache=cache)
+                | StrOutputParser()
+        )
         super().__init__(runnable=runnable, **kwargs)
 
     def _check_model_is_pulled_in_server(self) -> None:
@@ -31,19 +35,20 @@ class OllamaSummarizer(BaseSummarizer):
         ):
             client.pull(model=self.model)
 
-    def render_summary(self, content):
+    def render_summary(self, content) -> Iterator:
         text = ""
         for page in content:
             text += page.page_content + "\n"
-        return self.runnable.invoke(text)
+        return self.runnable.astream(text)
 
-    def get_metadata(self, file_name: str, content: AIMessage) -> dict[str, Any]:
+    def get_metadata(self, file_name: str, content) -> dict[str, Any]:
+        # TODO incorporate here other info from the returned iterators as metadata
         return {
             'summarizer': self.__class__.__name__,
-            'model': content.response_metadata['model'],
+            # 'model': content.response_metadata['model'],
             'loader': self.loader.__class__.__name__,
             'file_name': file_name,
-            'created_at': content.response_metadata['created_at'],
-            'usage': content.usage_metadata,
-            'done_reason': content.response_metadata['done_reason'],
+            # 'created_at': content.response_metadata['created_at'],
+            # 'usage': content.usage_metadata,
+            # 'done_reason': content.response_metadata['done_reason'],
         }

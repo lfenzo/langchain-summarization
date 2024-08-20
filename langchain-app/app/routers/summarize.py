@@ -31,4 +31,4 @@ async def summarize(file: UploadFile = File(...)):
             .build()
         )
 
-        return service.summarize(file_name=file.filename)
+        return await service.summarize(file_name=file.filename)
