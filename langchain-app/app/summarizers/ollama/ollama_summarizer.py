@@ -16,10 +16,10 @@ class OllamaSummarizer(BaseSummarizer):
         model: str,
         cache: BaseCache = None,
         **kwargs,
-    ):
+    ) -> None:
+        self._check_model_is_pulled_in_server(model=model, base_url=base_url)
         self.model = model
         self.base_url = base_url
-        self._check_model_is_pulled_in_server()
         runnable = (
                 self.prompt
                 | ChatOllama(model=self.model, base_url=self.base_url, cache=cache)
@@ -27,13 +27,13 @@ class OllamaSummarizer(BaseSummarizer):
         )
         super().__init__(runnable=runnable, **kwargs)
 
-    def _check_model_is_pulled_in_server(self) -> None:
-        client = ollama.Client(host=self.base_url)
+    def _check_model_is_pulled_in_server(self, model: str, base_url: str) -> None:
+        client = ollama.Client(host=base_url)
         if (
             not client.list()['models']
-            or not any(self.model == model['name'] for model in client.list()['models'])
+            or not any(model == m['name'] for m in client.list()['models'])
         ):
-            client.pull(model=self.model)
+            client.pull(model=model)
 
     def render_summary(self, content) -> Iterator:
         text = ""

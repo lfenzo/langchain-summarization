@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from typing import Any, AsyncGenerator
 
 from fastapi.responses import StreamingResponse
-from langchain_core.messages import AIMessage
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.runnables.base import Runnable
 from langchain_core.document_loaders import BaseLoader
@@ -26,7 +25,7 @@ class BaseSummarizer(ABC):
     def prompt(self):
         return ChatPromptTemplate.from_messages([
             ('system', "You produce high quality summaries in several languages"),
-            ('user', "You must produce the summary in the same language as the original."),
+            ('system', "You must produce the summary in the same language as the original."),
             ('user', "Here is the text to be summarized:\n\n{text}"),
         ])
 
@@ -42,7 +41,7 @@ class BaseSummarizer(ABC):
         with open(self.loader.file_path, 'rb') as file:
             return file.read()
 
-    async def summarize(self, file_name: str) -> str:
+    async def summarize(self, file_name: str) -> StreamingResponse:
         content = self.loader.load()
         summary_parts = []
 
