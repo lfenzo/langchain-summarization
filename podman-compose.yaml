@@ -10,6 +10,15 @@ services:
       - ./langchain-app/:/langchain-app/:Z
     ports:
       - 8000:8000
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    security_opt:
+      - "label=disable"
     depends_on:
       - ollama-server
       - redis

@@ -1,16 +1,19 @@
-FROM ubuntu
+FROM nvidia/cuda:12.5.0-runtime-ubuntu22.04
 
 RUN apt update && apt install -y \
     curl \
     git \
-    libmagic1t64 \
-    python3-pip
+    libmagic1 \
+    ffmpeg \
+    python3-pip \
+    libcudnn8 \
+    libcudnn8-dev
 
 WORKDIR /langchain-app
 
 COPY requirements.txt requirements.txt
 
-RUN pip install --break-system-packages -r requirements.txt
+RUN pip install -r requirements.txt
 
 EXPOSE 8000
 
