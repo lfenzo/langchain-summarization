@@ -26,6 +26,7 @@ class BaseSummarizer(ABC):
         return ChatPromptTemplate.from_messages([
             ('system', "You produce high quality summaries in several languages"),
             ('system', "You must produce the summary in the same language as the original."),
+            ('system', "Just write the summary, no need for introduction phrases."),
             ('user', "Here is the text to be summarized:\n\n{text}"),
         ])
 
@@ -38,7 +39,11 @@ class BaseSummarizer(ABC):
         pass
 
     def get_document_bytes(self) -> bytes:
-        with open(self.loader.file_path, 'rb') as file:
+        if hasattr(self.loader, 'blob_parser'):
+            path = self.loader.blob_loader.path
+        else:
+            path = self.loader.file_path
+        with open(path, 'rb') as file:
             return file.read()
 
     async def summarize(self, file_name: str) -> StreamingResponse:

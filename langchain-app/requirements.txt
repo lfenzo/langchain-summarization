@@ -17,3 +17,5 @@ ollama
 faster-whisper
 yt_dlp
 pydub
+torch
+librosa
