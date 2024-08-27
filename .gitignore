@@ -3,6 +3,8 @@ __pycache__/
 ollama/models/
 .ipynb_checkpoints/
 
+langchain-app/.whisper/*
+
 redis/*
 !redis/.env
 
