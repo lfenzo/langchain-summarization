@@ -11,14 +11,8 @@ from app.storage.base_store_manager import BaseStoreManager
 
 class BaseSummarizer(ABC):
 
-    def __init__(
-        self,
-        loader: BaseLoader,
-        runnable: Runnable,
-        store_manager: BaseStoreManager,
-    ) -> None:
+    def __init__(self, loader: BaseLoader, store_manager: BaseStoreManager) -> None:
         self.loader = loader
-        self.runnable = runnable
         self.store_manager = store_manager
 
     @property
@@ -30,6 +24,14 @@ class BaseSummarizer(ABC):
             ('user', "Here is the text to be summarized:\n\n{text}"),
         ])
 
+    @property
+    def runnable(self) -> Runnable:
+        return self.create_runnable()
+
+    @abstractmethod
+    def create_runnable(self, **kwargs) -> Runnable:
+        pass
+
     @abstractmethod
     def render_summary(self, content):
         pass
@@ -39,10 +41,8 @@ class BaseSummarizer(ABC):
         pass
 
     def get_document_bytes(self) -> bytes:
-        if hasattr(self.loader, 'blob_parser'):
-            path = self.loader.blob_loader.path
-        else:
-            path = self.loader.file_path
+        has_blob_perser = hasattr(self.loader, 'blob_parser')
+        path = self.loader.blob_loader.path if has_blob_perser else self.loader.file_path
         with open(path, 'rb') as file:
             return file.read()
 

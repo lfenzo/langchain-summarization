@@ -1,3 +1,5 @@
+from abc import abstractmethod
+
 from langchain_core.caches import BaseCache
 from langchain_core.document_loaders import BaseLoader
 
@@ -11,6 +13,7 @@ class SummarizerBuilder:
 
     def __init__(self) -> None:
         self.loader = None
+        self.cache = CacheFactory().create(cache_type='redis', host='redis', port=6379)
         self.store_manager = StorageManagerFactory().create(
             manager='mongodb',
             database_name='summary_database',
@@ -18,7 +21,17 @@ class SummarizerBuilder:
             user='root',
             password='examplepassword',  # TODO pass via ENV variables
         )
-        self.cache = CacheFactory().create(cache_type='redis', host='redis', port=6379)
+
+    @abstractmethod
+    def build():
+        pass
+
+    def get_init_params(self):
+        return {
+            'cache': self.cache,
+            'loader': self.loader,
+            'store_manager': self.store_manager,
+        }
 
     def set_store_manager(self, manager: str, store_manager: BaseStoreManager = None, **kwargs):
         self.store_manager = (
@@ -40,10 +53,3 @@ class SummarizerBuilder:
             else CacheFactory().create(cache_type=cache_type)
         )
         return self
-
-    def build(self) -> dict:
-        return {
-            'cache': self.cache,
-            'loader': self.loader,
-            'store_manager': self.store_manager,
-        }

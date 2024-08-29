@@ -4,36 +4,38 @@ import ollama
 from langchain_ollama import ChatOllama
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.caches import BaseCache
+from langchain_core.runnables.base import Runnable
+from langchain_core.language_models.chat_models import BaseChatModel
 
 from app.summarizers.base.base_summarizer import BaseSummarizer
 
 
 class OllamaSummarizer(BaseSummarizer):
 
-    def __init__(
-        self,
-        base_url: str,
-        model: str,
-        cache: BaseCache = None,
-        **kwargs,
-    ) -> None:
-        self._check_model_is_pulled_in_server(model=model, base_url=base_url)
-        self.model = model
+    def __init__(self, base_url: str, model_name: str, cache: BaseCache = None, **kwargs) -> None:
+        self._ensure_model_is_pulled_in_server(model_name=model_name, base_url=base_url)
+        self.cache = cache
         self.base_url = base_url
-        runnable = (
-                self.prompt
-                | ChatOllama(model=self.model, base_url=self.base_url, cache=cache)
-                | StrOutputParser()
-        )
-        super().__init__(runnable=runnable, **kwargs)
+        self.model_name = model_name
+        super().__init__(**kwargs)
 
-    def _check_model_is_pulled_in_server(self, model: str, base_url: str) -> None:
+    @property
+    def model(self) -> BaseChatModel:
+        return ChatOllama(model=self.model_name, base_url=self.base_url, cache=self.cache)
+
+    def create_runnable(self) -> Runnable:
+        print("A" * 80)
+        print("Base (Ollama)")
+        print("A" * 80)
+        return self.prompt | self.model | StrOutputParser()
+
+    def _ensure_model_is_pulled_in_server(self, model_name: str, base_url: str) -> None:
         client = ollama.Client(host=base_url)
         if (
             not client.list()['models']
-            or not any(model == m['name'] for m in client.list()['models'])
+            or not any(model_name == m['name'] for m in client.list()['models'])
         ):
-            client.pull(model=model)
+            client.pull(model=model_name)
 
     def render_summary(self, content) -> Iterator:
         text = ""
@@ -45,7 +47,7 @@ class OllamaSummarizer(BaseSummarizer):
         # TODO incorporate here other info from the returned iterators as metadata
         return {
             'summarizer': self.__class__.__name__,
-            # 'model': content.response_metadata['model'],
+            'model_name': self.model_name,
             'loader': self.loader.__class__.__name__,
             'file_name': file_name,
             # 'created_at': content.response_metadata['created_at'],

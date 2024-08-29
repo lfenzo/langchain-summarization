@@ -10,3 +10,5 @@ redis/*
 
 mongodb/*
 !mongodb/.env
+
+input/
