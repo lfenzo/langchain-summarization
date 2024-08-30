@@ -24,9 +24,6 @@ class OllamaSummarizer(BaseSummarizer):
         return ChatOllama(model=self.model_name, base_url=self.base_url, cache=self.cache)
 
     def create_runnable(self) -> Runnable:
-        print("A" * 80)
-        print("Base (Ollama)")
-        print("A" * 80)
         return self.prompt | self.model | StrOutputParser()
 
     def _ensure_model_is_pulled_in_server(self, model_name: str, base_url: str) -> None:

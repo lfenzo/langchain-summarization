@@ -7,5 +7,4 @@ from app.summarizers.experimental.reader_centered.reader_centered_summarizer imp
 class ReaderCenteredSummarizationBuilder(OllamaSummarizationBuilder):
 
     def build(self):
-        print(self.get_init_params())
         return ReaderCenteredSummarizer(**self.get_init_params())
