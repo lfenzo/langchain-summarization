@@ -18,10 +18,13 @@ class BaseSummarizer(ABC):
     @property
     def prompt(self):
         return ChatPromptTemplate.from_messages([
-            ('system', "You produce high quality summaries in several languages"),
-            ('system', "You must produce the summary in the same language as the original."),
-            ('system', "Just write the summary, no need for introduction phrases."),
-            ('user', "Here is the text to be summarized:\n\n{text}"),
+            ('system', "You an expert multi-language AI summary writer."),
+            ('system', "Produce a summary of the provided text."),
+            ('system', "Do not provide an introduction, just the summary."),
+            ('system', "The summary must contain ~25% of the length of the original"),
+            ('system', "Summary language must be the same as the original"),
+            ('system', "Tailor the summary to that you assume to be the document audience"),
+            ('human', "{text}"),
         ])
 
     @property
