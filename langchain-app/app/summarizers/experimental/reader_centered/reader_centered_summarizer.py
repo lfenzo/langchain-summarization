@@ -27,7 +27,9 @@ class ReaderCenteredSummarizer(OllamaSummarizer):
 
     @property
     def extraction_model(self):
-        return ChatOllama(model='mistral-nemo', base_url=self.base_url, cache=self.cache)
+        return ChatOllama(
+            model='mistral-nemo', base_url=self.base_url, cache=self.cache, temperature=0,
+        )
 
     @property
     def reader_type_prompt(self):
@@ -79,10 +81,8 @@ class ReaderCenteredSummarizer(OllamaSummarizer):
             ('user', "Here is the text to be summarized:\n\n{text}"),
         ])
 
-    def create_runnable(self) -> Runnable:
-        return self.prompt | self.model | StrOutputParser()
-
     def render_summary(self, content) -> Iterator:
+        # TODO find a more langchain-esque say to do this chaining
         reader_type_chain = (
             self.reader_type_prompt
             | self.extraction_model.with_structured_output(schema=TextReader)
