@@ -19,3 +19,5 @@ yt_dlp
 pydub
 torch
 librosa
+unstructured
+markdown
