@@ -1,7 +1,6 @@
-from typing import Iterator, Optional
+from typing import Iterator, Optional, TypedDict, Annotated
 
 from langchain.pydantic_v1 import BaseModel, Field
-from langchain_core.runnables.base import Runnable
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
@@ -31,6 +30,31 @@ class DocumentInfo(BaseModel):
     )
 
 
+class Info(TypedDict):
+    document_type: Annotated[
+        str, None,
+        """
+        Type of the documet/text
+        For example "scientific paper", "essay", "poem", "song lyrics", "recorded lecture"
+        Feel free to include other types
+        """
+    ]
+    main_topio = Annotated[
+        str, None,
+        """
+        Main topic discussed along the document, presented in a small phase.
+        """
+    ]
+    audiance = Annotated[
+        str, None,
+        """
+        Audience for the document, the most likely person to read the document
+        For example: "engineer", "teacher", "student"
+        Feel free to include other audiences
+        """
+    ]
+
+
 class DocumentCenteredSummarizer(OllamaSummarizer):
 
     def __init__(self, **kwargs):
@@ -47,10 +71,13 @@ class DocumentCenteredSummarizer(OllamaSummarizer):
         return ChatPromptTemplate.from_messages([
             (
                 "system",
-                "You are an expert extraction algorithm. "
-                "Only extract relevant information from the text. "
-                "If you do not know the value of an attribute asked to extract, "
-                "return null for the attribute's value.",
+                """
+                You are an expert extraction algorithm, specialized in extracting structured
+                information. Your task is to accurately identify and extract relevant attributes
+                from the provided text. For each attribute, if the value cannot be determined from
+                the text, return 'null' as the attribute's value. Ensure the extracted information
+                is concise, relevant, and structured according to the required format.
+                """
             ),
             ("human", "{text}"),
         ])
@@ -75,7 +102,7 @@ class DocumentCenteredSummarizer(OllamaSummarizer):
     def render_summary(self, content) -> Iterator:
         document_info_chain = (
             self.document_info_extraction_prompt
-            | self.extraction_model.with_structured_output(schema=DocumentInfo)
+            | self.extraction_model.with_structured_output(schema=Info, include_raw=True)
         )
 
         summarization_chain = self.summarization_prompt | self.model | StrOutputParser()

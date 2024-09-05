@@ -3,9 +3,23 @@ from tempfile import NamedTemporaryFile
 import magic
 from fastapi import APIRouter, File, UploadFile
 
-from app.summarizers.ollama.ollama_builder import OllamaSummarizationBuilder
+from app.summarizers.ollama.ollama_builder import (
+    OllamaSummarizationBuilder
+)
+from app.summarizers.experimental.reader_centered.reader_centered_builder import (
+    ReaderCenteredSummarizationBuilder
+)
+from app.summarizers.experimental.document_centered.document_centered_builder import (
+    DocumentCenteredSummarizationBuilder
+)
 
 router = APIRouter()
+
+SUMARIZERS = {
+    'ollama': OllamaSummarizationBuilder,
+    'reader_info_extraction': ReaderCenteredSummarizationBuilder,
+    'document_info_extraction': DocumentCenteredSummarizationBuilder,
+}
 
 
 @router.post("/test-upload")
@@ -25,9 +39,9 @@ async def summarize(file: UploadFile = File(...)):
         tmp_file.seek(0)  # Ensure the file pointer is at the start
 
         service = (
-            OllamaSummarizationBuilder()
+            SUMARIZERS['reader_info_extraction']()
             .set_loader(file_type=magic.from_buffer(contents, mime=True), file_path=tmp_file.name)
-            .set_model('llama3.1')
+            .set_model('gemma2:27b')
             .build()
         )
 
