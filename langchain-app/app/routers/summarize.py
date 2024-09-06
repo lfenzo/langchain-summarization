@@ -13,10 +13,15 @@ from app.summarizers.experimental.document_centered.document_centered_builder im
     DocumentCenteredSummarizationBuilder
 )
 
+from app.summarizers.google_vertexai.google_vertexai_builder import (
+    GoogleVertexAISummarizerBuilder
+)
+
 router = APIRouter()
 
 SUMARIZERS = {
     'ollama': OllamaSummarizationBuilder,
+    'google': GoogleVertexAISummarizerBuilder,
     'reader_info_extraction': ReaderCenteredSummarizationBuilder,
     'document_info_extraction': DocumentCenteredSummarizationBuilder,
 }
@@ -39,9 +44,8 @@ async def summarize(file: UploadFile = File(...)):
         tmp_file.seek(0)  # Ensure the file pointer is at the start
 
         service = (
-            SUMARIZERS['reader_info_extraction']()
+            SUMARIZERS['google']()
             .set_loader(file_type=magic.from_buffer(contents, mime=True), file_path=tmp_file.name)
-            .set_model('gemma2:27b')
             .build()
         )
 

@@ -1,4 +1,4 @@
-from typing import Any, Iterator
+from typing import Any
 
 import ollama
 from langchain_ollama import ChatOllama
@@ -33,12 +33,6 @@ class OllamaSummarizer(BaseSummarizer):
             or not any(model_name == m['name'] for m in client.list()['models'])
         ):
             client.pull(model=model_name)
-
-    def render_summary(self, content) -> Iterator:
-        text = ""
-        for page in content:
-            text += page.page_content + "\n"
-        return self.runnable.astream(text)
 
     def get_metadata(self, file_name: str, content) -> dict[str, Any]:
         # TODO incorporate here other info from the returned iterators as metadata

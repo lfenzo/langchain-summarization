@@ -4,6 +4,7 @@ faster-whisper
 langchain
 langchain-ollama
 langchain_community
+langchain-google-vertexai
 langserve
 librosa
 markdown

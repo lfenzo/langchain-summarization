@@ -19,6 +19,8 @@ services:
               capabilities: [gpu]
     security_opt:
       - "label=disable"
+    env_file:
+      - langchain-app/.env
     depends_on:
       - ollama-server
       - redis

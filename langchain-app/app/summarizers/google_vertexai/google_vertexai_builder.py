@@ -1,26 +1,26 @@
 from app.summarizers.base.base_builder import SummarizerBuilder
-from app.summarizers.ollama.ollama_summarizer import OllamaSummarizer
+from app.summarizers.google_vertexai.google_vertexai_summarizer import GoogleVertexAISummarizer
 
 
-class OllamaSummarizationBuilder(SummarizerBuilder):
+class GoogleVertexAISummarizerBuilder(SummarizerBuilder):
     def __init__(self):
         super().__init__()
-        self.base_url = "http://ollama-server:11434"
-        self.model_name = "gemma2:27b"
+        self.model_name = "gemini-1.5-pro"
+        self.location = "us-central1"
 
     def build(self):
-        return OllamaSummarizer(**self.get_init_params())
+        return GoogleVertexAISummarizer(**self.get_init_params())
 
     def get_init_params(self):
         params = {
-            "base_url": self.base_url,
             "model_name": self.model_name,
+            "location": self.location,
         }
         params.update(super().get_init_params())
         return params
 
-    def set_base_url(self, base_url: str):
-        self.base_url = base_url
+    def set_location(self, location: str):
+        self.location = location
         return self
 
     def set_model_name(self, model_name: str):

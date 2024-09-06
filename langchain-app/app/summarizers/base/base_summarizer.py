@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator
+from typing import Any, AsyncGenerator, Iterator
 
 from fastapi.responses import StreamingResponse
 from langchain.prompts import ChatPromptTemplate
@@ -37,12 +37,14 @@ class BaseSummarizer(ABC):
         pass
 
     @abstractmethod
-    def render_summary(self, content):
-        pass
-
-    @abstractmethod
     def get_metadata(self, file_name: str, content) -> dict[str, Any]:
         pass
+
+    def render_summary(self, content) -> Iterator:
+        text = ""
+        for page in content:
+            text += page.page_content + "\n"
+        return self.runnable.astream(text)
 
     def get_document_bytes(self) -> bytes:
         has_blob_perser = hasattr(self.loader, 'blob_parser')
