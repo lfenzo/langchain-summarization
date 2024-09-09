@@ -5,6 +5,7 @@ langchain
 langchain-ollama
 langchain_community
 langchain-google-vertexai
+langchain-google-genai
 langserve
 librosa
 markdown

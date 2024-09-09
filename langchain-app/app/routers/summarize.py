@@ -3,16 +3,14 @@ from tempfile import NamedTemporaryFile
 import magic
 from fastapi import APIRouter, File, UploadFile
 
-from app.summarizers.ollama.ollama_builder import (
-    OllamaSummarizationBuilder
-)
+from app.summarizers.ollama.ollama_builder import OllamaSummarizationBuilder
+from app.summarizers.google_genai.google_genai_builder import GoogleGenAISummarizerBuilder
 from app.summarizers.experimental.reader_centered.reader_centered_builder import (
     ReaderCenteredSummarizationBuilder
 )
 from app.summarizers.experimental.document_centered.document_centered_builder import (
     DocumentCenteredSummarizationBuilder
 )
-
 from app.summarizers.google_vertexai.google_vertexai_builder import (
     GoogleVertexAISummarizerBuilder
 )
@@ -21,7 +19,8 @@ router = APIRouter()
 
 SUMARIZERS = {
     'ollama': OllamaSummarizationBuilder,
-    'google': GoogleVertexAISummarizerBuilder,
+    'google-vertex': GoogleVertexAISummarizerBuilder,
+    'google-genai': GoogleGenAISummarizerBuilder,
     'reader_info_extraction': ReaderCenteredSummarizationBuilder,
     'document_info_extraction': DocumentCenteredSummarizationBuilder,
 }
@@ -44,7 +43,7 @@ async def summarize(file: UploadFile = File(...)):
         tmp_file.seek(0)  # Ensure the file pointer is at the start
 
         service = (
-            SUMARIZERS['google']()
+            SUMARIZERS['google-genai']()
             .set_loader(file_type=magic.from_buffer(contents, mime=True), file_path=tmp_file.name)
             .build()
         )
