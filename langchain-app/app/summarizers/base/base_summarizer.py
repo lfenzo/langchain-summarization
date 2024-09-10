@@ -54,21 +54,25 @@ class BaseSummarizer(ABC):
 
     async def summarize(self, file_name: str) -> StreamingResponse:
         content = self.loader.load()
-        summary_parts = []
+        summary_chunks = []
 
         async def stream_summary() -> AsyncGenerator[str, None]:
             async for chunk in self.render_summary(content):
-                summary_parts.append(chunk)
+                summary_chunks.append(chunk)
                 yield chunk
 
-            full_summary = "".join(summary_parts)
-            document_bytes = self.get_document_bytes()
-            metadata = self.get_metadata(file_name=file_name, content=full_summary)
+        response = StreamingResponse(stream_summary(), media_type="text/plain")
 
-            await self.store_manager.store_summary(
-                metadata=metadata,
-                summary=full_summary,
-                document=document_bytes,
-            )
+        summary = "".join(summary_chunks)
+        document_bytes = self.get_document_bytes()
+        metadata = self.get_metadata(file_name=file_name, content=summary)
 
-        return StreamingResponse(stream_summary(), media_type="text/plain")
+        summary_id = await self.store_manager.store_summary(
+            summary=summary,
+            metadata=metadata,
+            document=document_bytes,
+        )
+
+        response.headers["summary_id"] = summary_id
+
+        return response
