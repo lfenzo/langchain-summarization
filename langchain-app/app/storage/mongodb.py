@@ -1,3 +1,4 @@
+from typing import Any
 from bson import ObjectId
 from bson.binary import Binary
 from pymongo import MongoClient
@@ -31,13 +32,14 @@ class MongoDBStoreManager(BaseStoreManager):
     def document_can_be_stored(self, document: bytes) -> bool:
         return len(document) <= MAX_DOCUMENT_SIZE_IN_BYTES
 
-    def get_summary(self, **kwargs):
-        return self._get_summary_by_document_id(**kwargs)
-
-    def _get_summary_by_document_id(self, document_id: str) -> bytes:
-        collection = self.db[self.database_name]
+    def _get_summary_document_by_id(self, document_id: str) -> dict[str, Any]:
+        """Get the summary MongoDB dobument by document_id."""
+        collection = self.db[self.collection_name]
         document = collection.find_one({"_id": ObjectId(document_id)})
-        return document['data']
+        return document
+
+    def get_summary(self, **kwargs):
+        return self._get_summary_document_by_id(**kwargs)
 
     async def store_summary(self, summary: str, metadata: dict, document: bytes) -> str:
         collection = self.db[self.collection_name]
@@ -48,11 +50,23 @@ class MongoDBStoreManager(BaseStoreManager):
             "metadata": metadata,
             "summary": summary,
             "original_document_in_bytes": document,
+            "feedback": None,
         }).inserted_id
+
         return str(document_id)
 
-    async def store_summary_feedback(self, form: FeedbackForm) -> str:
-        document = self._get_summary_by_document_id(document_id=form.document_id)
-        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa")
-        print(document)
-        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa")
+    async def store_summary_feedback(self, form: FeedbackForm) -> None:
+        collection = self.db[self.collection_name]
+
+        feedback_dict = {
+            key: value
+            for key, value in form.dict().items() if key != 'document_id'
+        }
+
+        update_result = collection.update_one(
+            {"_id": ObjectId(form.document_id)},
+            {"$set": {"feedback": feedback_dict}}
+        )
+
+        if update_result.matched_count == 0:
+            raise ValueError(f"Failed to update document with ObjectId '{form.document_id}'")
