@@ -8,5 +8,5 @@ class BaseStoreManager(ABC):
         pass
 
     @abstractmethod
-    def get_summary_document_id(self):
+    def get_summary(self):
         pass

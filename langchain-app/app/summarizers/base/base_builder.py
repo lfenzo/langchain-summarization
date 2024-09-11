@@ -14,13 +14,7 @@ class SummarizerBuilder:
     def __init__(self) -> None:
         self.loader = None
         self.cache = CacheFactory().create(cache_type='redis', host='redis', port=6379)
-        self.store_manager = StorageManagerFactory().create(
-            manager='mongodb',
-            database_name='summary_database',
-            collection_name='summaries',
-            user='root',
-            password='examplepassword',  # TODO pass via ENV variables
-        )
+        self.store_manager = StorageManagerFactory().create(manager='mongodb')
 
     @abstractmethod
     def build():

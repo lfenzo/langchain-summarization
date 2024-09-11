@@ -24,6 +24,7 @@ class OllamaSummarizer(BaseSummarizer):
         return ChatOllama(model=self.model_name, base_url=self.base_url, cache=self.cache)
 
     def create_runnable(self) -> Runnable:
+        # TODO in the future we may wanna set the output parser as a property
         return self.prompt | self.model | StrOutputParser()
 
     def _ensure_model_is_pulled_in_server(self, model_name: str, base_url: str) -> None:
