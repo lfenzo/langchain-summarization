@@ -1,5 +1,6 @@
+import json
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, Iterator
+from typing import Any, AsyncGenerator, Iterator, Dict
 
 from fastapi.responses import StreamingResponse
 from langchain.prompts import ChatPromptTemplate
@@ -52,27 +53,32 @@ class BaseSummarizer(ABC):
         with open(path, 'rb') as file:
             return file.read()
 
+    def _get_summary_from_chunks(self, summary_chunks: dict[str, str]) -> str:
+        summary = ''
+        for chunk in summary_chunks:
+            summary += chunk['summary_chunk']
+        return summary
+
     async def summarize(self, file_name: str) -> StreamingResponse:
         content = self.loader.load()
         summary_chunks = []
 
-        async def stream_summary() -> AsyncGenerator[str, None]:
+        async def stream_summary() -> AsyncGenerator[Dict[str, Any], None]:
             async for chunk in self.render_summary(content):
-                summary_chunks.append(chunk)
-                yield chunk
+                chunk_data = {"summary_chunk": chunk, "document_id": None}
+                summary_chunks.append(chunk_data)
+                yield json.dumps(chunk_data)
 
-        response = StreamingResponse(stream_summary(), media_type="text/plain")
+            summary = self._get_summary_from_chunks(summary_chunks)
+            metadata = self.get_metadata(file_name=file_name, content=summary)
+            document_bytes = self.get_document_bytes()
 
-        summary = "".join(summary_chunks)
-        document_bytes = self.get_document_bytes()
-        metadata = self.get_metadata(file_name=file_name, content=summary)
+            summary_id = await self.store_manager.store_summary(
+                summary=summary,
+                metadata=metadata,
+                document=document_bytes,
+            )
 
-        summary_id = await self.store_manager.store_summary(
-            summary=summary,
-            metadata=metadata,
-            document=document_bytes,
-        )
+            yield json.dumps({"summary_chunk": "", "summary_id": summary_id})
 
-        response.headers["summary_id"] = summary_id
-
-        return response
+        return StreamingResponse(stream_summary(), media_type="application/json")
