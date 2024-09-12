@@ -2,13 +2,16 @@
 Set of test function prototyping various methods to improve summary generation.
 """
 
+from time import sleep
 from typing import TypedDict, Annotated, Optional
 
-from langchain_community.document_loaders import PyMuPDFLoader, UnstructuredMarkdownLoader
+from langchain.chat_models.base import BaseChatModel
+from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_core.output_parsers import StrOutputParser
 from langchain_ollama import ChatOllama
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 
 OLLAMA_SERVER = 'http://ollama-server:11434'
@@ -72,23 +75,22 @@ def _accumulate_text(document):
     return text
 
 
-def base_summarization_prompt(text: str, model: str = "llama3.1"):
+def base_summarization_prompt(text: str, model: BaseChatModel):
     """
     Tests with the base summarization prompt (no tools, structured extraction, etc)
     """
     prompt = ChatPromptTemplate.from_messages([
-        ('system', "You are an expert in writing concise and accurate summaries in multiple languages."),
-        ('system', "Your task is to generate a summary of the provided text."),
-        ('system', "Start the summary immediately; do not include any introductory phrases."),
-        ('system', "The summary should be approximately 25% of the length of the original text."),
-        ('system', "Ensure the summary is written in the same language as the original text."),
-        ('system', "Write in a direct style, avoiding phrases like 'the text states'"),
-        ("system", "focus solely on conveying the key facts."),
-        ('system', "Consider the intended audience of the document when generating the summary."),
+        ('human', "You are an expert in writing concise and accurate summaries in multiple languages."),
+        ('human', "Your task is to generate a summary of the provided text."),
+        ('human', "Start the summary immediately; do not include any introductory phrases."),
+        ('human', "The summary should be approximately 25% of the length of the original text."),
+        ('human', "Ensure the summary is written in the same language as the original text."),
+        ('human', "Write in a direct style, avoiding phrases like 'the text states'"),
+        ("human", "focus solely on conveying the key facts."),
+        ('human', "Consider the intended audience of the document when generating the summary."),
         ('human', "{text}"),
     ])
 
-    model = ChatOllama(model=model, base_url=OLLAMA_SERVER)
     chain = prompt | model
 
     summary = ""
@@ -99,18 +101,15 @@ def base_summarization_prompt(text: str, model: str = "llama3.1"):
     return summary
 
 
-def structured_extraction_1(structured_type: str = 'pydantic', model: str = "llama3.1"):
+def structured_extraction_1(text: str, model: BaseChatModel, extraction_model: BaseChatModel):
     """
     1. Get the reader type (what is the target audience for the original document)
     2. Generate 3 relevant bullet points that a reader of the detected type considers relevant
     3. Generate the summary using the reader type and relevant points
     """
-    extraction_model = ChatOllama(model='llama3.1', base_url=OLLAMA_SERVER, temperature=0)
-    model = ChatOllama(model=model, base_url=OLLAMA_SERVER)
-
     audience_extraction_prompt = ChatPromptTemplate.from_messages([
         (
-            "system",
+            "human",
             """
             You are an expert extraction algorithm, specialized in identifying and extracting the
             target audience of technical and non-technical documents. Your task is to accurately
@@ -124,7 +123,7 @@ def structured_extraction_1(structured_type: str = 'pydantic', model: str = "lla
 
     audience_main_points_prompt = ChatPromptTemplate.from_messages([
         (
-            "system",
+            "human",
             """
             You will be given document target audience, generate exactly 3 bullet points that
             representing concisely the main characteristics a reader from that audience considers
@@ -141,7 +140,7 @@ def structured_extraction_1(structured_type: str = 'pydantic', model: str = "lla
 
     summary_prompt = ChatPromptTemplate.from_messages([
         (
-            "system",
+            "human",
             """
             You are an expert in writing concise and accurate summaries in several languages.
             Given the text, write a summary considering that the target audience for that document
@@ -159,10 +158,16 @@ def structured_extraction_1(structured_type: str = 'pydantic', model: str = "lla
         audience_extraction_prompt | extraction_model.with_structured_output(schema=InfoPydantic)
     )
     audience = audience_chain.invoke({"text": text}).audience
+    print(audience)
+    print("=" * 100)
 
     points_chain = audience_main_points_prompt | model
     main_points = points_chain.invoke({"audience": audience})
+    print(main_points)
+    print("=" * 100)
 
+    print("aguardando o tempo para chama novamente o modelo")
+    sleep(60)
     summary_chain = summary_prompt | model | StrOutputParser()
 
     for chunk in summary_chain.stream({
@@ -173,23 +178,21 @@ def structured_extraction_1(structured_type: str = 'pydantic', model: str = "lla
         print(chunk, end='', flush=True)
 
 
-def structured_extraction_2(text: str, structured_type: str = 'pydantic', model: str = "llama3.1"):
+def structured_extraction_2(text: str, model: BaseChatModel, extraction_model: BaseChatModel):
     """
     1. Get in one pass the audience, document type and main topics via structured extraction
     2. Insert the collected information into a teplate
     3. Generate the summary using that template
     """
-    extraction_model = ChatOllama(model='llama3.1', base_url=OLLAMA_SERVER, temperature=0)
-    summarization_model = ChatOllama(model=model, base_url=OLLAMA_SERVER)
-
     extraction_prompt = ChatPromptTemplate.from_messages([
         (
-            "system",
-            "You are an expert extraction algorithm, specialized in extracting structured information. "
-            "Your task is to accurately identify and extract relevant attributes from the provided text. "
-            "For each attribute, if the value cannot be determined from the text, return 'null' as the attribute's value. "
-            "Ensure the extracted information is concise, relevant, and structured according to the required format."
+            "human",
             """
+            You are an expert extraction algorithm, specialized in extracting structured
+            information. Your task is to accurately identify and extract relevant attributes from
+            the provided text. For each attribute, if the value cannot be determined from the text,
+            return 'null' as the attribute's value. Ensure the extracted information is concise,
+            relevant, and structured according to the required format."
             Example:
             [
                 "audience": "researchers in renewable energy",
@@ -202,17 +205,17 @@ def structured_extraction_2(text: str, structured_type: str = 'pydantic', model:
     ])
 
     summarization_prompt = ChatPromptTemplate.from_messages([
-        ('system', "You an expert AI multi-lingual summary writer."),
-        ('system', "Just write the summary, no need for introduction phrases."),
+        ('human', "You an expert AI multi-lingual summary writer."),
+        ('human', "Just write the summary, no need for introduction phrases."),
         (
-            'system',
+            'human',
             "Consider that the summary is targeted towards {audience} reader(s). "
             "Consider that the main topic in this document is {main_topic} and that this "
             "is a {document_type} document. Generate a summary appropriate to this "
             "audience, document format and main topic."
         ),
-        ('system', "The summary must contain ~25% of the length of the original text."),
-        ('system', "Ensure that the summary is in the same language as the original."),
+        ('human', "The summary must contain ~25% of the length of the original text."),
+        ('human', "Ensure that the summary is in the same language as the original."),
         ('human', "{text}"),
     ])
 
@@ -220,9 +223,11 @@ def structured_extraction_2(text: str, structured_type: str = 'pydantic', model:
         extraction_prompt
         | extraction_model.with_structured_output(schema=InfoPydantic)
     )
-    summarization_chain = summarization_prompt | summarization_model | StrOutputParser()
+    summarization_chain = summarization_prompt | model | StrOutputParser()
 
     extracted_info = extracton_chain.invoke({"text": text})
+    print(extracted_info)
+    print("=" * 100)
 
     for chunk in summarization_chain.stream({
         "text": text,
@@ -233,19 +238,21 @@ def structured_extraction_2(text: str, structured_type: str = 'pydantic', model:
         print(chunk, end='', flush=True)
 
 
-def structured_extraction_inversed(text: str, structured_type: str = 'pydantic', model: str = "llama3.1"):
+def structured_extraction_inversed(
+    text: str,
+    model: BaseChatModel,
+    extraction_model: BaseChatModel,
+):
     summary = base_summarization_prompt(text=text, model=model)
-    extraction_model = ChatOllama(model='llama3.1', base_url=OLLAMA_SERVER, temperature=0)
-    summarization_model = ChatOllama(model=model, base_url=OLLAMA_SERVER)
-
     extraction_prompt = ChatPromptTemplate.from_messages([
         (
             "system",
-            "You are an expert extraction algorithm, specialized in extracting structured information. "
-            "Your task is to accurately identify and extract relevant attributes from the provided text. "
-            "For each attribute, if the value cannot be determined from the text, return 'null' as the attribute's value. "
-            "Ensure the extracted information is concise, relevant, and structured according to the required format."
             """
+            You are an expert extraction algorithm, specialized in extracting structured
+            information. Your task is to accurately identify and extract relevant attributes from
+            the provided text. For each attribute, if the value cannot be determined from the text,
+            return 'null' as the attribute's value. Ensure the extracted information is concise,
+            relevant, and structured according to the required format
             Example:
             [
                 "audience": "researchers in renewable energy",
@@ -258,17 +265,17 @@ def structured_extraction_inversed(text: str, structured_type: str = 'pydantic',
     ])
 
     summarization_prompt = ChatPromptTemplate.from_messages([
-        ('system', "You an expert AI multi-lingual summary writer."),
-        ('system', "Just write the summary, no need for introduction phrases."),
+        ('human', "You an expert AI multi-lingual summary writer."),
+        ('human', "Just write the summary, no need for introduction phrases."),
         (
-            'system',
+            'human',
             "Consider that the summary is targeted towards {audience} reader(s). "
             "Consider that the main topic in this document is {main_topic} and that this "
             "is a {document_type} document. Generate a summary appropriate to this "
             "audience, document format and main topic."
         ),
-        ('system', "The summary must contain ~25% of the length of the original text."),
-        ('system', "Ensure that the summary is in the same language as the original."),
+        ('human', "The summary must contain ~25% of the length of the original text."),
+        ('human', "Ensure that the summary is in the same language as the original."),
         ('human', "{text}"),
     ])
 
@@ -276,12 +283,14 @@ def structured_extraction_inversed(text: str, structured_type: str = 'pydantic',
         extraction_prompt
         | extraction_model.with_structured_output(schema=InfoPydantic)
     )
-    summarization_chain = summarization_prompt | summarization_model | StrOutputParser()
+    summarization_chain = summarization_prompt | model | StrOutputParser()
 
     extracted_info = extracton_chain.invoke({"text": summary})
     print(extracted_info)
-    print()
+    print("=" * 100)
 
+    print("aguardando o tempo para chama novamente o modelo")
+    sleep(60)
     for chunk in summarization_chain.stream({
         "text": text,
         "audience": extracted_info.audience,
@@ -312,17 +321,22 @@ def manual_extraction_1(text: str, structured_type: str = 'pydantic', model: str
         print(chunk.content, end='', flush=True)
 
 
+def load_text(path: str) -> str:
+    with open(path, 'r') as file:
+        return file.read()
+
+
 if __name__ == "__main__":
-    file_path = 'input/digital-thermometer-ds18b20.pdf'
+    file_path = 'input/tdd.pdf'
     loader = PyMuPDFLoader(file_path=file_path)
     text = _accumulate_text(loader.load())
+    # text = load_text(path=file_path)
 
-    text = """
-    O Instituto Nacional de Meteorologia emitiu alerta vermelho, de grande perigo, em relação à baixa umidade nas regiões Centro-Oeste e Sudeste. O instituto alertou, em boletim informativo, que a umidade relativa do ar pode ficar abaixo de 12% em áreas de estados dessas regiões, com grande risco de incêndios florestais e à saúde. O Inmet também emitiu um outro alerta de perigo de baixa umidade do ar nesta segunda-feira, 2, abrangendo as regiões Norte e Nordeste do país.
+    # model = ChatGoogleGenerativeAI(model="gemini-1.5-pro")
+    model = ChatOllama(model='gemma2:27b', base_url=OLLAMA_SERVER)
+    extraction_model = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0)
 
-A baixa umidade do ar deve afetar, segundo o Inmet, o centro goiano, Triângulo Mineiro, Alto do Paranaíba, leste goiano, central mineira, centro-sul mato-grossense, sul goiano, Presidente Prudente, São José do Rio Pre… - Veja mais em https://noticias.uol.com.br/ultimas-noticias/agencia-estado/2024/09/02/inmet-alerta-para-grande-perigo-de-umidade-abaixo-de-12-no-centro-oeste-e-sudeste.htm?cmpid=copiaecola
-
-    O alerta vale para o centro goiano, Triângulo Mineiro, Alto do Paranaíba, leste goiano, central mineira, sul cearense, região ocidental do Tocantins, sudeste piauiense, Sertões Cearenses, centro-sul mato-grossense, sul goiano, Presidente Prudente, São José do Rio Preto, São Francisco Pernambucano, centro-norte piauiense, sudeste paraense, nordeste mato-grossense, leste de Mato Grosso do Sul, Campinas, oeste de Minas Gerais, Bauru, Piracicaba, sul/sudoeste de Minas Gerais, centro norte de Mato Grosso do Sul, Campo das Vertentes, região oriental do Tocantins, norte mato-grossense, sudoeste paraense, Ribeirão Preto, Araçatuba, sudeste mato-grossense, norte goiano, sul maranhense, Zona… - Veja mais em https://noticias.uol.com.br/ultimas-noticias/agencia-estado/2024/09/02/inmet-alerta-para-grande-perigo-de-umidade-abaixo-de-12-no-centro-oeste-e-sudeste.htm?cmpid=copiaecola
-    """
-    #base_summarization_prompt(text)
-    structured_extraction_inversed(text, model="llama3.1")
+    base_summarization_prompt(text=text, model=model)
+    structured_extraction_1(text=text, model=model, extraction_model=extraction_model)
+    structured_extraction_2(text=text, model=model, extraction_model=extraction_model)
+    structured_extraction_inversed(text, model=model, extraction_model=extraction_model)
