@@ -42,7 +42,7 @@ class BaseSummarizer(ABC):
         pass
 
     def render_summary(self, content) -> Iterator:
-        return self.runnable.astream(input=self._get_content_text(content=content))
+        return self.runnable.astream(input=self._get_text_from_content(content=content))
 
     async def summarize(self, file_name: str) -> StreamingResponse:
         content = self.loader.load()
@@ -68,7 +68,7 @@ class BaseSummarizer(ABC):
 
         return StreamingResponse(stream_summary(), media_type="application/json")
 
-    def _get_content_text(self, content: list[Document]) -> str:
+    def _get_text_from_content(self, content: list[Document]) -> str:
         return "".join([page.page_content + "\n" for page in content])
 
     def _get_summary_from_chunks(self, summary_chunks: dict[str, str]) -> str:

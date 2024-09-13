@@ -96,7 +96,7 @@ class DynamicPromptSummarizer(OllamaSummarizer):
         ])
 
     def render_summary(self, content) -> Iterator:
-        text = self._get_content_text(content=content)
+        text = self._get_text_from_content(content=content)
 
         combined_chain = (
             self.extraction_prompt
