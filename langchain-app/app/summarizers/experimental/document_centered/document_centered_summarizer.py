@@ -112,8 +112,6 @@ class DocumentCenteredSummarizer(OllamaSummarizer):
             text += page.page_content + "\n"
 
         document_info = document_info_chain.invoke({"text": text})
-        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", flush=True)
-        print(document_info, flush=True)
 
         return summarization_chain.astream(
             {

@@ -3,7 +3,7 @@ Set of test function prototyping various methods to improve summary generation.
 """
 
 from time import sleep
-from typing import TypedDict, Annotated, Optional
+from typing import Optional
 
 from langchain.chat_models.base import BaseChatModel
 from langchain_community.document_loaders import PyMuPDFLoader
@@ -15,6 +15,44 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 
 
 OLLAMA_SERVER = 'http://ollama-server:11434'
+
+
+class DocumentInfo(BaseModel):
+    """General document information to better guide the summary generation process."""
+    text_type: Optional[str] = Field(
+        """
+        The type of the text, examples: "article", "report", "blog post", "academic paper", etc
+        """
+    )
+    media_type: Optional[str] = Field(
+        """
+        The media type, examples: "extracted pdf file", "audio transcript", "slide presentation",
+        "text file", etc
+        """
+    )
+    document_domain: Optional[str] = Field(
+        """
+        The document domain, examples: "technical", "medical", "legal", "financial", etc
+        """
+    )
+    audience: Optional[str] = Field(
+        """
+        The document target audience, examples: "engineers", "students", "researchers", "academics"
+        , etc
+        """
+    )
+    audience_expertise: Optional[str] = Field(
+        """
+        The audience expertise level based on the text content, examples: "beginner",
+        "intermediete", "expert", etc
+        """
+    )
+    key_points: Optional[str] = Field(
+        """
+        Key sections or aspects the audience is likely interested in (e.g., methods in a scientific
+        paper, key results in a financial report)
+        """
+    )
 
 
 class InfoPydantic(BaseModel):
@@ -39,33 +77,6 @@ class InfoPydantic(BaseModel):
             Feel free to include other audiences
         """
     )
-
-
-class InfoTypedDict(TypedDict):
-    """Text, content and reader characteristics."""
-
-    document_type: Annotated[
-        str, None,
-        """
-        Type of the documet/text
-        For example "scientific paper", "essay", "poem", "song lyrics", "recorded lecture"
-        Feel free to include other types
-        """
-    ]
-    main_topio = Annotated[
-        str, None,
-        """
-        Main topic discussed along the document, presented in a small phase.
-        """
-    ]
-    audiance = Annotated[
-        str, None,
-        """
-        Audience for the document, the most likely person to read the document
-        For example: "engineer", "teacher", "student"
-        Feel free to include other audiences
-        """
-    ]
 
 
 def _accumulate_text(document):
@@ -238,6 +249,70 @@ def structured_extraction_2(text: str, model: BaseChatModel, extraction_model: B
         print(chunk, end='', flush=True)
 
 
+def structured_extraction_3(text: str, model: BaseChatModel, extraction_model: BaseChatModel):
+    """
+    1. Get in one pass more detailed data about the summary (see DocumentInfo class)
+    2. Insert the collected information into a teplate acoomodating the pydantic class
+    3. Generate the summary using that template
+    """
+    extraction_prompt = ChatPromptTemplate.from_messages([
+        (
+            "human",
+            """
+            You are an expert extraction algorithm, specialized in extracting structured
+            information. Your task is to accurately identify and extract relevant attributes from
+            the provided text. For each attribute, if the value cannot be determined from the text,
+            return 'null' as the attribute's value. Ensure the extracted information is concise,
+            relevant, and structured according to the required format."
+            """
+        ),
+        ("human", "{text}"),
+    ])
+
+    summarization_prompt = ChatPromptTemplate.from_messages([
+        ('human', "You an expert AI multi-lingual summary writer."),
+        ('human', "Just write the summary, no need for introduction phrases."),
+        ('human', "The summary must contain ~25% of the length of the original text."),
+        ('human', "Ensure that the summary is in the same language as the original."),
+        (
+            'human',
+            """
+            Here are further information to guide you when generating the summary. Make sure that
+            all these points are taken in consideretion in the appropriate summary:
+            - Text Type: {text_type}
+            - Media Type: {media_type}
+            - Document Domain: {document_domain}
+            - Audience: {audience}
+            - Audience Expertise: {audience}
+            - Document Key Points: {key_points}
+            """
+        ),
+        ('human', "{text}"),
+    ])
+
+    extracton_chain = (
+        extraction_prompt
+        | extraction_model.with_structured_output(schema=DocumentInfo)
+    )
+    summarization_chain = summarization_prompt | model | StrOutputParser()
+
+    extracted_info = extracton_chain.invoke({"text": text})
+    print(extracted_info)
+    print("=" * 100)
+    sleep(60)
+
+    for chunk in summarization_chain.stream({
+        "text": text,
+        "text_type": extracted_info.text_type,
+        "media_type": extracted_info.media_type,
+        "document_domain": extracted_info.document_domain,
+        "audience": extracted_info.audience,
+        "audience_expertise": extracted_info.audience_expertise,
+        "key_points": extracted_info.key_points,
+    }):
+        print(chunk, end='', flush=True)
+
+
 def structured_extraction_inversed(
     text: str,
     model: BaseChatModel,
@@ -334,9 +409,11 @@ if __name__ == "__main__":
 
     # model = ChatGoogleGenerativeAI(model="gemini-1.5-pro")
     model = ChatOllama(model='gemma2:27b', base_url=OLLAMA_SERVER)
+    # extraction_model = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0)
     extraction_model = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0)
 
-    base_summarization_prompt(text=text, model=model)
-    structured_extraction_1(text=text, model=model, extraction_model=extraction_model)
-    structured_extraction_2(text=text, model=model, extraction_model=extraction_model)
-    structured_extraction_inversed(text, model=model, extraction_model=extraction_model)
+    # base_summarization_prompt(text=text, model=model)
+    # structured_extraction_1(text=text, model=model, extraction_model=extraction_model)
+    # structured_extraction_2(text=text, model=model, extraction_model=extraction_model)
+    structured_extraction_3(text=text, model=model, extraction_model=extraction_model)
+    # structured_extraction_inversed(text, model=model, extraction_model=extraction_model)

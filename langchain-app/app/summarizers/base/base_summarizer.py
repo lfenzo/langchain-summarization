@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.runnables.base import Runnable
 from langchain_core.document_loaders import BaseLoader
-
+from langchain_core.documents.base import Document
 from app.storage.base_store_manager import BaseStoreManager
 
 
@@ -42,22 +42,7 @@ class BaseSummarizer(ABC):
         pass
 
     def render_summary(self, content) -> Iterator:
-        text = ""
-        for page in content:
-            text += page.page_content + "\n"
-        return self.runnable.astream(text)
-
-    def get_document_bytes(self) -> bytes:
-        has_blob_perser = hasattr(self.loader, 'blob_parser')
-        path = self.loader.blob_loader.path if has_blob_perser else self.loader.file_path
-        with open(path, 'rb') as file:
-            return file.read()
-
-    def _get_summary_from_chunks(self, summary_chunks: dict[str, str]) -> str:
-        summary = ''
-        for chunk in summary_chunks:
-            summary += chunk['summary_chunk']
-        return summary
+        return self.runnable.astream(input=self._get_content_text(content=content))
 
     async def summarize(self, file_name: str) -> StreamingResponse:
         content = self.loader.load()
@@ -71,7 +56,7 @@ class BaseSummarizer(ABC):
 
             summary = self._get_summary_from_chunks(summary_chunks)
             metadata = self.get_metadata(file_name=file_name, content=summary)
-            document_bytes = self.get_document_bytes()
+            document_bytes = self._get_document_bytes()
 
             summary_id = await self.store_manager.store_summary(
                 summary=summary,
@@ -82,3 +67,15 @@ class BaseSummarizer(ABC):
             yield json.dumps({"summary_chunk": "", "summary_id": summary_id})
 
         return StreamingResponse(stream_summary(), media_type="application/json")
+
+    def _get_content_text(self, content: list[Document]) -> str:
+        return "".join([page.page_content + "\n" for page in content])
+
+    def _get_summary_from_chunks(self, summary_chunks: dict[str, str]) -> str:
+        return "".join([chunk['summary_chunk'] for chunk in summary_chunks])
+
+    def _get_document_bytes(self) -> bytes:
+        has_blob_perser = hasattr(self.loader, 'blob_parser')
+        path = self.loader.blob_loader.path if has_blob_perser else self.loader.file_path
+        with open(path, 'rb') as file:
+            return file.read()

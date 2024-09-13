@@ -16,6 +16,9 @@ from app.summarizers.experimental.document_centered.document_centered_builder im
 from app.summarizers.google_vertexai.google_vertexai_builder import (
     GoogleVertexAISummarizerBuilder
 )
+from app.summarizers.experimental.dynamic_promopts.dynamic_prompts_builder import (
+    DynamicPromptSummarizerBuilder
+)
 
 router = APIRouter()
 
@@ -24,6 +27,7 @@ SUMARIZERS = {
     'ollama': OllamaSummarizationBuilder,
     'google-vertex': GoogleVertexAISummarizerBuilder,
     'google-genai': GoogleGenAISummarizerBuilder,
+    'dynamic-prompt': DynamicPromptSummarizerBuilder,
     'reader_info_extraction': ReaderCenteredSummarizationBuilder,
     'document_info_extraction': DocumentCenteredSummarizationBuilder,
 }
@@ -49,7 +53,7 @@ async def summarize(file: UploadFile = File(...)):
         tmp_file.seek(0)  # Ensure the file pointer is at the start
 
         service = (
-            SUMARIZERS['ollama']()
+            SUMARIZERS['dynamic-prompt']()
             .set_loader(file_type=magic.from_buffer(contents, mime=True), file_path=tmp_file.name)
             .set_model_name('llama3.1')
             .build()
