@@ -1,7 +1,8 @@
 import json
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, Iterator, Dict
+from typing import Any, AsyncGenerator, AsyncIterator, Dict
 
+from langchain_core.messages.ai import AIMessageChunk
 from fastapi.responses import StreamingResponse
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.runnables.base import Runnable
@@ -34,45 +35,47 @@ class BaseSummarizer(ABC):
         return self.create_runnable()
 
     @abstractmethod
+    def get_metadata(self, file_name: str, content, last_chunk: dict) -> dict[str, Any]:
+        pass
+
     def create_runnable(self, **kwargs) -> Runnable:
-        pass
+        return self.prompt | self.model
 
-    @abstractmethod
-    def get_metadata(self, file_name: str, content) -> dict[str, Any]:
-        pass
-
-    def render_summary(self, content) -> Iterator:
+    def render_summary(self, content) -> AsyncIterator[AIMessageChunk]:
         return self.runnable.astream(input=self._get_text_from_content(content=content))
 
     async def summarize(self, file_name: str) -> StreamingResponse:
-        content = self.loader.load()
+        content_to_summarize = self.loader.load()
         summary_chunks = []
 
-        async def stream_summary() -> AsyncGenerator[Dict[str, Any], None]:
-            async for chunk in self.render_summary(content):
-                chunk_data = {"summary_chunk": chunk, "document_id": None}
-                summary_chunks.append(chunk_data)
-                yield json.dumps(chunk_data)
+        async def stream_summary():
+            async for chunk in self.render_summary(content=content_to_summarize):
+                summary_chunks.append(chunk)
+                yield json.dumps({"content": chunk.content})
 
             summary = self._get_summary_from_chunks(summary_chunks)
-            metadata = self.get_metadata(file_name=file_name, content=summary)
-            document_bytes = self._get_document_bytes()
+            original_document_in_bytes = self._get_document_bytes()
+            metadata = self.get_metadata(
+                content=summary,
+                file_name=file_name,
+                last_chunk=summary_chunks[-1],
+            )
 
             summary_id = await self.store_manager.store_summary(
                 summary=summary,
                 metadata=metadata,
-                document=document_bytes,
+                document=original_document_in_bytes,
             )
 
-            yield json.dumps({"summary_chunk": "", "summary_id": summary_id})
+            yield json.dumps({"content": "", "summary_id": summary_id})
 
         return StreamingResponse(stream_summary(), media_type="application/json")
 
     def _get_text_from_content(self, content: list[Document]) -> str:
         return "".join([page.page_content + "\n" for page in content])
 
-    def _get_summary_from_chunks(self, summary_chunks: dict[str, str]) -> str:
-        return "".join([chunk['summary_chunk'] for chunk in summary_chunks])
+    def _get_summary_from_chunks(self, summary_chunks: list[AIMessageChunk]) -> str:
+        return "".join([chunk.content for chunk in summary_chunks])
 
     def _get_document_bytes(self) -> bytes:
         has_blob_perser = hasattr(self.loader, 'blob_parser')

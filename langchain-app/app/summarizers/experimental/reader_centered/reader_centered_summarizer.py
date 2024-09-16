@@ -1,8 +1,6 @@
 from typing import Iterator
 
 from langchain.pydantic_v1 import BaseModel, Field
-from langchain_core.runnables.base import Runnable
-from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
 
@@ -90,7 +88,7 @@ class ReaderCenteredSummarizer(OllamaSummarizer):
 
         reader_points_chain = self.reader_main_points_prompt | self.model
 
-        summary_chain = self.summarization_prompt | self.model | StrOutputParser()
+        summary_chain = self.summarization_prompt | self.model
 
         text = ""
         for page in content:

@@ -1,7 +1,6 @@
 from typing import Iterator, Optional, TypedDict, Annotated
 
 from langchain.pydantic_v1 import BaseModel, Field
-from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
 
@@ -105,7 +104,7 @@ class DocumentCenteredSummarizer(OllamaSummarizer):
             | self.extraction_model.with_structured_output(schema=Info, include_raw=True)
         )
 
-        summarization_chain = self.summarization_prompt | self.model | StrOutputParser()
+        summarization_chain = self.summarization_prompt | self.model
 
         text = ""
         for page in content:

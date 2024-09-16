@@ -2,7 +2,6 @@ from typing import Iterator, Optional
 
 from langchain.chat_models.base import BaseChatModel
 from langchain.pydantic_v1 import BaseModel, Field
-from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 
@@ -112,7 +111,6 @@ class DynamicPromptSummarizer(OllamaSummarizer):
             })
             | self.summarization_prompt
             | self.model
-            | StrOutputParser()
         )
 
         return combined_chain.astream({"text": text})

@@ -3,8 +3,6 @@ from typing import Any
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.caches import BaseCache
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.runnables.base import Runnable
-from langchain_core.output_parsers import StrOutputParser
 from langchain_core.language_models.chat_models import BaseChatModel
 
 from app.summarizers.base.base_summarizer import BaseSummarizer
@@ -33,8 +31,14 @@ class GoogleGenAISummarizer(BaseSummarizer):
             ('human', "{text}"),
         ])
 
-    def create_runnable(self) -> Runnable:
-        return self.prompt | self.model | StrOutputParser()
+    def get_metadata(self, file_name: str, content, last_chunk: dict) -> dict[str, Any]:
+        return {
+            'summarizer': self.__class__.__name__,
+            'loader': self.loader.__class__.__name__,
+            'file_name': file_name,
+            **last_chunk.response_metadata,
+            **last_chunk.usage_metadata,
+        }
 
     @property
     def model(self) -> BaseChatModel:
@@ -43,11 +47,3 @@ class GoogleGenAISummarizer(BaseSummarizer):
             cache=self.cache,
             location=self.location
         )
-
-    def get_metadata(self, file_name: str, content) -> dict[str, Any]:
-        return {
-            'summarizer': self.__class__.__name__,
-            'model_name': self.model_name,
-            'loader': self.loader.__class__.__name__,
-            'file_name': file_name,
-        }
