@@ -4,17 +4,9 @@ import magic
 from fastapi import APIRouter, File, UploadFile
 
 from app.models.feedback import FeedbackForm
-from app.factories.store_manager_factory import StorageManagerFactory
-from app.summarizers.ollama.ollama_builder import OllamaSummarizationBuilder
-from app.summarizers.google_genai.google_genai_builder import GoogleGenAISummarizerBuilder
-from app.summarizers.experimental.reader_centered.reader_centered_builder import (
-    ReaderCenteredSummarizationBuilder
-)
-from app.summarizers.experimental.document_centered.document_centered_builder import (
-    DocumentCenteredSummarizationBuilder
-)
-from app.summarizers.google_vertexai.google_vertexai_builder import (
-    GoogleVertexAISummarizerBuilder
+from app.factories.store_manager_factory import StoreManagerFactory
+from app.summarizers.simple_summarizer.simple_summarizer_builder import (
+    SimmpleSummarizerBuilder
 )
 from app.summarizers.experimental.dynamic_promopts.dynamic_prompts_builder import (
     DynamicPromptSummarizerBuilder
@@ -24,18 +16,14 @@ router = APIRouter()
 
 # TODO: turn this into a builder factory
 SUMARIZERS = {
-    'ollama': OllamaSummarizationBuilder,
-    'google-vertex': GoogleVertexAISummarizerBuilder,
-    'google-genai': GoogleGenAISummarizerBuilder,
+    'simple': SimmpleSummarizerBuilder,
     'dynamic-prompt': DynamicPromptSummarizerBuilder,
-    'reader_info_extraction': ReaderCenteredSummarizationBuilder,
-    'document_info_extraction': DocumentCenteredSummarizationBuilder,
 }
 
 
 @router.post("/summarize/feedback")
 async def upload_summary_feedback(form: FeedbackForm):
-    storage_manager = StorageManagerFactory().create(manager='mongodb')
+    storage_manager = StoreManagerFactory().create(manager='mongodb')
     await storage_manager.store_summary_feedback(form=form)
     return {
         'user': form.user,
@@ -55,7 +43,8 @@ async def summarize(file: UploadFile = File(...)):
         service = (
             SUMARIZERS['dynamic-prompt']()
             .set_loader(file_type=magic.from_buffer(contents, mime=True), file_path=tmp_file.name)
-            .set_model_name('llama3.1')
+            .set_chatmodel(service='ollama', model='llama3.1')
+            .set_extraction_chatmodel(service='google-genai', model='gemini-1.5-pro', temperature=0)
             .build()
         )
 

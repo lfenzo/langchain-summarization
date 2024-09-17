@@ -1,7 +1,9 @@
-from typing import Any
+from typing import Any, AsyncIterator, Dict
 
-from langchain_core.runnables.base import Runnable
+from langchain_core.documents.base import Document
 from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages.ai import AIMessageChunk
+from langchain_core.runnables.base import Runnable
 from langchain.prompts import ChatPromptTemplate
 
 from app.summarizers.base.base_summarizer import BaseSummarizer
@@ -28,17 +30,18 @@ class SimmpleSummarizer(BaseSummarizer):
             ('human', "{text}"),
         ])
 
-    def create_runnable(self, **kwargs) -> Runnable:
+    @property
+    def runnable(self, **kwargs) -> Runnable:
         return self.prompt | self.chatmodel
 
-    def get_metadata(self, file_name: str, last_chunk: dict) -> dict[str, Any]:
-        return {
-            'input_file_name': file_name,
-            'summarizer': self.__class__.__name__,
-            'loader': repr(self.loader),
+    def render_summary(self, content: list[Document]) -> AsyncIterator[AIMessageChunk]:
+        return self.runnable.astream(input=self._get_text_from_content(content=content))
+
+    def get_metadata(self, file_name: str, last_chunk: Dict) -> Dict[str, Any]:
+        metadata = self._get_base_metadata(file_name=file_name, last_chunk=last_chunk)
+        metadata.update({
             'chatmodel': repr(self.chatmodel),
             'prompt': repr(self.prompt),
             'has_system_msg_support': self.has_system_msg_support,
-            **last_chunk.response_metadata,
-            **last_chunk.usage_metadata,
-        }
+        })
+        return metadata

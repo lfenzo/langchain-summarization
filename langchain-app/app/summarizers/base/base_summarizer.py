@@ -18,18 +18,15 @@ class BaseSummarizer(ABC):
 
     @property
     def runnable(self) -> Runnable:
-        return self.create_runnable()
+        ...
 
     @abstractmethod
     def get_metadata(self, file_name: str, last_chunk: dict) -> dict[str, Any]:
-        pass
+        ...
 
     @abstractmethod
-    def create_runnable(self, **kwargs) -> Runnable:
-        pass
-
     def render_summary(self, content: list[Document]) -> AsyncIterator[AIMessageChunk]:
-        return self.runnable.astream(input=self._get_text_from_content(content=content))
+        ...
 
     async def summarize(self, file_name: str) -> StreamingResponse:
         content_to_summarize = self.loader.load()
@@ -68,3 +65,12 @@ class BaseSummarizer(ABC):
         path = self.loader.blob_loader.path if has_blob_perser else self.loader.file_path
         with open(path, 'rb') as file:
             return file.read()
+
+    def _get_base_metadata(self, file_name: str, last_chunk: Dict) -> Dict[str, Any]:
+        return {
+            'input_file_name': file_name,
+            'summarizer': self.__class__.__name__,
+            'loader': repr(self.loader),
+            **last_chunk.response_metadata,
+            **last_chunk.usage_metadata,
+        }

@@ -1,59 +1,25 @@
-from typing import Iterator, Optional
+from typing import Any, AsyncIterator
 
+from langchain_core.documents.base import Document
+from langchain_core.messages.ai import AIMessageChunk
 from langchain.chat_models.base import BaseChatModel
-from langchain.pydantic_v1 import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
 
-from app.summarizers.ollama.ollama_summarizer import OllamaSummarizer
-
-
-class DocumentInfo(BaseModel):
-    """General document information to better guide the summary generation process."""
-    text_type: Optional[str] = Field(
-        """
-        The type of the text, examples: "article", "report", "blog post", "academic paper", etc
-        """
-    )
-    media_type: Optional[str] = Field(
-        """
-        The media type, examples: "extracted pdf file", "audio transcript", "slide presentation",
-        "text file", etc
-        """
-    )
-    document_domain: Optional[str] = Field(
-        """
-        The document domain, examples: "technical", "medical", "legal", "financial", etc
-        """
-    )
-    audience: Optional[str] = Field(
-        """
-        The document target audience, examples: "engineers", "students", "researchers", "academics"
-        , etc
-        """
-    )
-    audience_expertise: Optional[str] = Field(
-        """
-        The audience expertise level based on the text content, examples: "beginner",
-        "intermediete", "expert", etc
-        """
-    )
-    key_points: Optional[str] = Field(
-        """
-        Key sections or aspects the audience is likely interested in (e.g., methods in a scientific
-        paper, key results in a financial report)
-        """
-    )
+from app.summarizers.base.base_summarizer import BaseSummarizer
+from app.models.document_info import DocumentInfo
 
 
-class DynamicPromptSummarizer(OllamaSummarizer):
+class DynamicPromptSummarizer(BaseSummarizer):
 
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        chatmodel: BaseChatModel,
+        extraction_chatmodel: BaseChatModel,
+        **kwargs,
+    ) -> None:
         super().__init__(**kwargs)
-
-    @property
-    def extraction_model(self) -> BaseChatModel:
-        return ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0)
+        self.chatmodel = chatmodel
+        self.extraction_chatmodel = extraction_chatmodel
 
     @property
     def extraction_prompt(self):
@@ -94,23 +60,29 @@ class DynamicPromptSummarizer(OllamaSummarizer):
             ('human', "{text}"),
         ])
 
-    def render_summary(self, content) -> Iterator:
-        text = self._get_text_from_content(content=content)
-
-        combined_chain = (
+    @property
+    def extraction_chain(self):
+        return (
             self.extraction_prompt
-            | self.extraction_model.with_structured_output(schema=DocumentInfo)
-            | (lambda doc_info: {
-                "text": text,
-                "text_type": doc_info.text_type,
-                "media_type": doc_info.media_type,
-                "document_domain": doc_info.document_domain,
-                "audience": doc_info.audience,
-                "audience_expertise": doc_info.audience_expertise,
-                "key_points": doc_info.key_points,
-            })
-            | self.summarization_prompt
-            | self.model
+            | self.extraction_chatmodel.with_structured_output(schema=DocumentInfo)
         )
 
-        return combined_chain.astream({"text": text})
+    @property
+    def summarization_chain(self):
+        return self.summarization_prompt | self.chatmodel
+
+    def render_summary(self, content: list[Document]) -> AsyncIterator[AIMessageChunk]:
+        text = self._get_text_from_content(content=content)
+        structured_information = self.extraction_chain.invoke({"text": text})
+        return self.summarization_chain.astream({"text": text, **structured_information.dict()})
+
+    def get_metadata(self, file_name: str, last_chunk: dict) -> dict[str, Any]:
+        metadata = self._get_base_metadata(file_name=file_name, last_chunk=last_chunk)
+        metadata.update({
+            'chatmodel': repr(self.chatmodel),
+            "summarization_prompt": repr(self.summarization_prompt),
+            'extraction_chatmodel': repr(self.extraction_chatmodel),
+            "extraction_prompt": repr(self.extraction_prompt),
+            "structured_straction_schema": DocumentInfo.__class__.__name__,
+        })
+        return metadata

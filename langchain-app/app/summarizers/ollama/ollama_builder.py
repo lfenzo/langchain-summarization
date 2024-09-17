@@ -1,8 +1,8 @@
-from app.summarizers.base.base_builder import SummarizerBuilder
+from app.summarizers.base.base_builder import BaseBuilder
 from app.summarizers.ollama.ollama_summarizer import OllamaSummarizer
 
 
-class OllamaSummarizationBuilder(SummarizerBuilder):
+class OllamaSummarizationBuilder(BaseBuilder):
     def __init__(self):
         super().__init__()
         self.base_url = "http://ollama-server:11434"
