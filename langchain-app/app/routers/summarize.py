@@ -8,7 +8,7 @@ from app.factories.store_manager_factory import StoreManagerFactory
 from app.summarizers.simple_summarizer.simple_summarizer_builder import (
     SimmpleSummarizerBuilder
 )
-from app.summarizers.experimental.dynamic_promopts.dynamic_prompts_builder import (
+from app.summarizers.experimental.dynamic_prompts.dynamic_prompts_builder import (
     DynamicPromptSummarizerBuilder
 )
 

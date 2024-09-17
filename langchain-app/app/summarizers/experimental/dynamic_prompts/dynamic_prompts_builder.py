@@ -1,7 +1,7 @@
 from langchain_core.language_models.chat_models import BaseChatModel
 
 from app.summarizers.base.base_builder import BaseBuilder
-from app.summarizers.experimental.dynamic_promopts.dynamic_prompts_summarizer import (
+from app.summarizers.experimental.dynamic_prompts.dynamic_prompts_summarizer import (
     DynamicPromptSummarizer
 )
 
@@ -14,7 +14,8 @@ class DynamicPromptSummarizerBuilder(BaseBuilder):
     }
     DEFAULT_EXTRACTION_CHATMODEL_SERVICE = 'google-genai'
     DEFAULT_EXTRACTION_CHATMODEL_KWARGS = {
-        'model': 'gemini-1.5-flash'
+        'model': 'gemini-1.5-flash',
+        'temperature': 0,
     }
 
     def __init__(self) -> None:
