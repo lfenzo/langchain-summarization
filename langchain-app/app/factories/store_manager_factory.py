@@ -1,12 +1,12 @@
 from app.storage.mongodb import MongoDBStoreManager
 
 
-class StorageManagerFactory:
+class StoreManagerFactory:
 
     def __init__(self):
-        self.storage_managers = {
+        self.store_managers = {
             'mongodb': MongoDBStoreManager,
         }
 
-    def create(self, manager: str, **kwargs):
-        return self.storage_managers[manager](**kwargs)
+    def create(self, store_manager: str, **kwargs):
+        return self.store_managers[store_manager](**kwargs)

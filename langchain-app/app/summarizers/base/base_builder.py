@@ -1,11 +1,9 @@
 from abc import abstractmethod
 
-from langchain_core.caches import BaseCache
 from langchain_core.document_loaders import BaseLoader
 
-from app.factories.cache_factory import CacheFactory
 from app.factories.loader_factory import LoaderFactory
-from app.factories.store_manager_factory import StorageManagerFactory
+from app.factories.store_manager_factory import StoreManagerFactory
 from app.storage.base_store_manager import BaseStoreManager
 
 
@@ -13,8 +11,7 @@ class SummarizerBuilder:
 
     def __init__(self) -> None:
         self.loader = None
-        self.cache = CacheFactory().create(cache_type='redis', host='redis', port=6379)
-        self.store_manager = StorageManagerFactory().create(manager='mongodb')
+        self.store_manager = StoreManagerFactory().create(store_manager='mongodb')
 
     @abstractmethod
     def build():
@@ -22,15 +19,14 @@ class SummarizerBuilder:
 
     def get_init_params(self):
         return {
-            'cache': self.cache,
             'loader': self.loader,
             'store_manager': self.store_manager,
         }
 
-    def set_store_manager(self, manager: str, store_manager: BaseStoreManager = None, **kwargs):
+    def set_store_manager(self, store_manager: str | BaseStoreManager, **kwargs):
         self.store_manager = (
-            store_manager if store_manager is not None
-            else StorageManagerFactory().create(manager=manager, **kwargs)
+            store_manager if isinstance(store_manager, BaseStoreManager)
+            else StoreManagerFactory().create(store_manager=store_manager, **kwargs)
         )
         return self
 
@@ -38,12 +34,5 @@ class SummarizerBuilder:
         self.loader = (
             loader if loader is not None
             else LoaderFactory().create(file_type=file_type, file_path=file_path)
-        )
-        return self
-
-    def set_cache(self, cache_type: str = None, cache: BaseCache = None):
-        self.cache = (
-            cache if cache is not None
-            else CacheFactory().create(cache_type=cache_type)
         )
         return self

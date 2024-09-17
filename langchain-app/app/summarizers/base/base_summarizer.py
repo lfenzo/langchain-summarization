@@ -2,12 +2,11 @@ import json
 from abc import ABC, abstractmethod
 from typing import Any, AsyncGenerator, AsyncIterator, Dict
 
-from langchain_core.messages.ai import AIMessageChunk
 from fastapi.responses import StreamingResponse
-from langchain.prompts import ChatPromptTemplate
-from langchain_core.runnables.base import Runnable
 from langchain_core.document_loaders import BaseLoader
 from langchain_core.documents.base import Document
+from langchain_core.messages.ai import AIMessageChunk
+from langchain_core.runnables.base import Runnable
 from app.storage.base_store_manager import BaseStoreManager
 
 
@@ -18,37 +17,25 @@ class BaseSummarizer(ABC):
         self.store_manager = store_manager
 
     @property
-    def prompt(self):
-        return ChatPromptTemplate.from_messages([
-            ('system', "You are an expert multi-language AI summary writer."),
-            ('system', "Produce a summary of the provided text."),
-            ('system', "Do not provide an introduction, just the summary."),
-            ('system', "The summary must contain ~25% of the length of the original"),
-            ('system', "Summary language must be the same as the original"),
-            ('system', "Tailor the summary to what you assume to be the document audience"),
-            ('system', "Don't ask for follouw-up questions."),
-            ('human', "{text}"),
-        ])
-
-    @property
     def runnable(self) -> Runnable:
         return self.create_runnable()
 
     @abstractmethod
-    def get_metadata(self, file_name: str, content, last_chunk: dict) -> dict[str, Any]:
+    def get_metadata(self, file_name: str, last_chunk: dict) -> dict[str, Any]:
         pass
 
+    @abstractmethod
     def create_runnable(self, **kwargs) -> Runnable:
-        return self.prompt | self.model
+        pass
 
-    def render_summary(self, content) -> AsyncIterator[AIMessageChunk]:
+    def render_summary(self, content: list[Document]) -> AsyncIterator[AIMessageChunk]:
         return self.runnable.astream(input=self._get_text_from_content(content=content))
 
     async def summarize(self, file_name: str) -> StreamingResponse:
         content_to_summarize = self.loader.load()
         summary_chunks = []
 
-        async def stream_summary():
+        async def stream_summary() -> AsyncGenerator[Dict[str, Any], None]:
             async for chunk in self.render_summary(content=content_to_summarize):
                 summary_chunks.append(chunk)
                 yield json.dumps({"content": chunk.content})
@@ -56,7 +43,6 @@ class BaseSummarizer(ABC):
             summary = self._get_summary_from_chunks(summary_chunks)
             original_document_in_bytes = self._get_document_bytes()
             metadata = self.get_metadata(
-                content=summary,
                 file_name=file_name,
                 last_chunk=summary_chunks[-1],
             )
