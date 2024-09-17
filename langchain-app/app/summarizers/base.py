@@ -7,7 +7,8 @@ from langchain_core.document_loaders import BaseLoader
 from langchain_core.documents.base import Document
 from langchain_core.messages.ai import AIMessageChunk
 from langchain_core.runnables.base import Runnable
-from app.storage.base_store_manager import BaseStoreManager
+
+from app.storage import BaseStoreManager
 
 
 class BaseSummarizer(ABC):

@@ -1,7 +1,7 @@
 from langchain_core.language_models.chat_models import BaseChatModel
 
-from app.summarizers.base.base_builder import BaseBuilder
-from app.summarizers.simple_summarizer.simple_summarizer import SimmpleSummarizer
+from app.summarizers import SimmpleSummarizer
+from app.summarizers.builders import BaseBuilder
 
 
 class SimmpleSummarizerBuilder(BaseBuilder):

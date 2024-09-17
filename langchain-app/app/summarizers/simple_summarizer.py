@@ -6,7 +6,7 @@ from langchain_core.messages.ai import AIMessageChunk
 from langchain_core.runnables.base import Runnable
 from langchain.prompts import ChatPromptTemplate
 
-from app.summarizers.base.base_summarizer import BaseSummarizer
+from app.summarizers import BaseSummarizer
 
 
 class SimmpleSummarizer(BaseSummarizer):

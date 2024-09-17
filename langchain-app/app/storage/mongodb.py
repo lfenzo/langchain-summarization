@@ -3,8 +3,8 @@ from bson import ObjectId
 from bson.binary import Binary
 from pymongo import MongoClient
 
-from app.models.feedback import FeedbackForm
-from app.storage.base_store_manager import BaseStoreManager
+from app.models import FeedbackForm
+from app.storage import BaseStoreManager
 
 
 MAX_DOCUMENT_SIZE_IN_BYTES = 16_793_598  # obtained from pymongo error message (~16MB)
@@ -42,9 +42,9 @@ class MongoDBStoreManager(BaseStoreManager):
         return self._get_summary_document_by_id(**kwargs)
 
     async def store_summary(self, summary: str, metadata: dict, document: bytes) -> str:
-        collection = self.db[self.collection_name]
         # currently mongodb can only store document of up to 16MB in size
         document = Binary(document) if self.document_can_be_stored(document) else None
+        collection = self.db[self.collection_name]
 
         document_id = collection.insert_one({
             "metadata": metadata,

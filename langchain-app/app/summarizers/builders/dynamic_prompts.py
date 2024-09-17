@@ -1,9 +1,7 @@
 from langchain_core.language_models.chat_models import BaseChatModel
 
-from app.summarizers.base.base_builder import BaseBuilder
-from app.summarizers.experimental.dynamic_prompts.dynamic_prompts_summarizer import (
-    DynamicPromptSummarizer
-)
+from app.summarizers import DynamicPromptSummarizer
+from app.summarizers.builders import BaseBuilder
 
 
 class DynamicPromptSummarizerBuilder(BaseBuilder):

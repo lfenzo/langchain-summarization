@@ -4,11 +4,8 @@ from langchain_core.caches import BaseCache
 from langchain_core.document_loaders import BaseLoader
 from langchain_core.language_models.chat_models import BaseChatModel
 
-from app.factories.cache_factory import CacheFactory
-from app.factories.chatmodel_factory import ChatModelFactory
-from app.factories.loader_factory import LoaderFactory
-from app.factories.store_manager_factory import StoreManagerFactory
-from app.storage.base_store_manager import BaseStoreManager
+from app.factories import CacheFactory, ChatModelFactory, LoaderFactory, StoreManagerFactory
+from app.storage import BaseStoreManager
 
 
 class BaseBuilder(ABC):

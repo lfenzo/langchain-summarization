@@ -5,8 +5,8 @@ from langchain_core.messages.ai import AIMessageChunk
 from langchain.chat_models.base import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate
 
-from app.summarizers.base.base_summarizer import BaseSummarizer
-from app.models.document_info import DocumentInfo
+from app.models import DocumentInfo
+from app.summarizers import BaseSummarizer
 
 
 class DynamicPromptSummarizer(BaseSummarizer):

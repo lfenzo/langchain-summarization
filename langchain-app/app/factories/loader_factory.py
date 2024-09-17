@@ -1,6 +1,6 @@
 from langchain_core.document_loaders import BaseLoader
-from langchain_community.document_loaders.generic import GenericLoader
 from langchain_community.document_loaders import PyMuPDFLoader
+from langchain_community.document_loaders.generic import GenericLoader
 from langchain_community.document_loaders.parsers.audio import FasterWhisperParser
 
 
