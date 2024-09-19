@@ -1,22 +1,18 @@
-FROM nvidia/cuda:12.6.0-runtime-ubuntu22.04
+FROM ubuntu:22.04
 
 RUN apt update && apt install -y \
-    curl \
     git \
-    libmagic1 \
+    curl \
     ffmpeg \
-    python3-pip \
-    libcudnn8 \
-    libcudnn8-dev
+    libmagic1 \
+    python3-pip
 
 WORKDIR /langchain-app
 
 COPY requirements.txt requirements.txt
 
+COPY langchain langchain
+
 RUN pip install -r requirements.txt
 
-ENV HF_HOME=".whisper/"
-
-EXPOSE 8000
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "app.main:app", "--reload"]

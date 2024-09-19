@@ -10,6 +10,22 @@ services:
       - ./langchain-app/:/langchain-app/:Z
     ports:
       - 8000:8000
+    env_file:
+      - langchain-app/.env
+    depends_on:
+      - ollama-server
+      - faster-whisper-server
+      - redis
+      - mongodb
+
+  faster-whisper-server:
+    image: fedirz/faster-whisper-server:latest-cuda
+    ports:
+      - 9000:9000
+    volumes:
+      - ./faster-whisper-server/hugging_face_cache:/root/.cache/huggingface
+    env_file:
+      - ./faster-whisper-server/.env
     deploy:
       resources:
         reservations:
@@ -19,12 +35,6 @@ services:
               capabilities: [gpu]
     security_opt:
       - "label=disable"
-    env_file:
-      - langchain-app/.env
-    depends_on:
-      - ollama-server
-      - redis
-      - mongodb
 
   ollama-server:
     build:

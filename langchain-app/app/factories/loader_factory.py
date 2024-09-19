@@ -1,7 +1,7 @@
 from langchain_core.document_loaders import BaseLoader
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_community.document_loaders.generic import GenericLoader
-from langchain_community.document_loaders.parsers.audio import FasterWhisperParser
+from langchain_community.document_loaders.parsers.audio import RemoteFasterWhisperParser
 
 
 class LoaderFactory:
@@ -18,8 +18,8 @@ class LoaderFactory:
     def _get_pdf_loader(self, file_path: str, **kwargs):
         return PyMuPDFLoader(file_path=file_path, **kwargs)
 
-    def _get_audio_loader(self, file_path: str, model_size: str = 'large-v3'):
+    def _get_audio_loader(self, file_path: str):
         return GenericLoader.from_filesystem(
             path=file_path,
-            parser=FasterWhisperParser(model_size=model_size),
+            parser=RemoteFasterWhisperParser(base_url='http://faster-whisper-server:9000'),
         )

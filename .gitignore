@@ -11,4 +11,7 @@ redis/*
 mongodb/*
 !mongodb/.env
 
+faster-whisper-server/*
+!faster-whisper-server/.env
+
 input/
