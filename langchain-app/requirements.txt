@@ -1,15 +1,12 @@
 bs4
 fastapi
-faster-whisper
 langchain
-langchain-ollama
 langchain_community
+langchain-ollama
 langchain-google-vertexai
 langchain-google-genai
-langserve
 librosa
 markdown
-ollama
 pydub
 pymongo
 pymupdf
@@ -18,8 +15,4 @@ python-multipart
 redis
 requests
 sse_starlette
-torch
-transformers
 unstructured
-uvicorn
-yt_dlp
