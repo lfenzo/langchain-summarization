@@ -21,5 +21,8 @@ class LoaderFactory:
     def _get_audio_loader(self, file_path: str):
         return GenericLoader.from_filesystem(
             path=file_path,
-            parser=RemoteFasterWhisperParser(base_url='http://faster-whisper-server:9000'),
+            parser=RemoteFasterWhisperParser(
+                base_url='http://faster-whisper-server:9000',
+                model_size='large-v3',
+            ),
         )
