@@ -4,8 +4,15 @@ from langchain_core.caches import BaseCache
 from langchain_core.document_loaders import BaseLoader
 from langchain_core.language_models.chat_models import BaseChatModel
 
-from app.factories import CacheFactory, ChatModelFactory, LoaderFactory, StoreManagerFactory
+from app.factories import (
+    CacheFactory,
+    ChatModelFactory,
+    ExecutionStrategyFactory,
+    LoaderFactory,
+    StoreManagerFactory,
+)
 from app.storage import BaseStoreManager
+from app.strategies.execution import BaseExecutionStrategy
 
 
 class BaseBuilder(ABC):
@@ -18,15 +25,17 @@ class BaseBuilder(ABC):
         self.loader = None
         self.cache = self._create_default_cache()
         self.store_manager = self._create_default_store_manager()
+        self.execution_strategy = self._create_default_execution_strategy()
 
     @abstractmethod
     def build():
-        pass
+        ...
 
     def get_init_params(self):
         return {
             'loader': self.loader,
             'store_manager': self.store_manager,
+            'execution_strategy': self.execution_strategy,
         }
 
     def set_store_manager(self, store_manager: str | BaseStoreManager, **kwargs):
@@ -50,6 +59,13 @@ class BaseBuilder(ABC):
         )
         return self
 
+    def set_execution_strategy(self, execution_strategy: str | BaseExecutionStrategy):
+        self.execution_strategy = (
+            execution_strategy if isinstance(execution_strategy, BaseExecutionStrategy)
+            else ExecutionStrategyFactory().create(strategy=execution_strategy)
+        )
+        return self
+
     def _create_chatmodel(self, service: str, chatmodel: BaseChatModel = None, **kwargs):
         return (
             chatmodel if isinstance(chatmodel, BaseChatModel)
@@ -65,3 +81,6 @@ class BaseBuilder(ABC):
             host=self.DEFAULT_CACHE_HOST,
             port=self.DEFAULT_CACHE_PORT
         )
+
+    def _create_default_execution_strategy(self) -> BaseExecutionStrategy:
+        return ExecutionStrategyFactory().create(strategy='stream')

@@ -10,7 +10,6 @@ from app.summarizers.builders import SimmpleSummarizerBuilder, DynamicPromptSumm
 
 router = APIRouter()
 
-# TODO: turn this into a builder factory
 SUMARIZERS = {
     'simple': SimmpleSummarizerBuilder,
     'dynamic-prompt': DynamicPromptSummarizerBuilder,
@@ -27,8 +26,17 @@ async def upload_summary_feedback(form: FeedbackForm):
     }
 
 
-@router.post("/summarize")
-async def summarize(file: UploadFile = File(...)):
+@router.post("/summarize/stream")
+async def stream_summarize(file: UploadFile = File(...)):
+    return await trigger_sumamrization_service(file, execution_strategy='stream')
+
+
+@router.post("/summarize/")
+async def invoke_summarize(file: UploadFile = File(...)):
+    return await trigger_sumamrization_service(file, execution_strategy='invoke')
+
+
+async def trigger_sumamrization_service(file: UploadFile, execution_strategy: str):
     contents = await file.read()
 
     with NamedTemporaryFile(delete=False) as tmp_file:
@@ -37,10 +45,12 @@ async def summarize(file: UploadFile = File(...)):
         tmp_file.seek(0)  # Ensure the file pointer is at the start
 
         service = (
-            SUMARIZERS['simple']()
+            SUMARIZERS['dynamic-prompt']()
             .set_loader(file_type=magic.from_buffer(contents, mime=True), file_path=tmp_file.name)
             .set_chatmodel(service='ollama', model='llama3.1')
+            .set_extraction_chatmodel(service='google-genai', model='gemini-1.5-pro')
+            .set_execution_strategy(execution_strategy)
             .build()
         )
 
-        return await service.summarize(file_name=file.filename)
+        return await service.process_summary_generation(file_name=file.filename)

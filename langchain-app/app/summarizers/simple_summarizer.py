@@ -2,7 +2,7 @@ from typing import Any, AsyncIterator, Dict
 
 from langchain_core.documents.base import Document
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages.ai import AIMessageChunk
+from langchain_core.messages.ai import AIMessageChunk, AIMessage
 from langchain_core.runnables.base import Runnable
 from langchain.prompts import ChatPromptTemplate
 
@@ -26,7 +26,7 @@ class SimmpleSummarizer(BaseSummarizer):
             (msg_type, "The summary must contain ~25% of the length of the original"),
             (msg_type, "Summary language must be the same as the original"),
             (msg_type, "Tailor the summary to what you assume to be the document audience"),
-            (msg_type, "Don't ask for follouw-up questions."),
+            (msg_type, "Don't ask for follow-up questions."),
             ('human', "{text}"),
         ])
 
@@ -34,11 +34,12 @@ class SimmpleSummarizer(BaseSummarizer):
     def runnable(self, **kwargs) -> Runnable:
         return self.prompt | self.chatmodel
 
-    def render_summary(self, content: list[Document]) -> AsyncIterator[AIMessageChunk]:
-        return self.runnable.astream(input=self._get_text_from_content(content=content))
+    def summarize(self, content: list[Document]) -> AsyncIterator[AIMessageChunk] | AIMessage:
+        text = self._get_text_from_content(content=content)
+        return self.execution_strategy.run(runnable=self.runnable, input=text)
 
-    def get_metadata(self, file_name: str, last_chunk: Dict) -> Dict[str, Any]:
-        metadata = self._get_base_metadata(file_name=file_name, last_chunk=last_chunk)
+    def get_metadata(self, file_name: str, generation_metadata: Dict) -> Dict[str, Any]:
+        metadata = self._get_base_metadata(file_name, generation_metadata)
         metadata.update({
             'chatmodel': repr(self.chatmodel),
             'prompt': repr(self.prompt),

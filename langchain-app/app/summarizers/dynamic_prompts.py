@@ -1,7 +1,7 @@
-from typing import Any, AsyncIterator
+from typing import Any, AsyncIterator, Dict
 
 from langchain_core.documents.base import Document
-from langchain_core.messages.ai import AIMessageChunk
+from langchain_core.messages.ai import AIMessageChunk, AIMessage
 from langchain.chat_models.base import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -71,13 +71,21 @@ class DynamicPromptSummarizer(BaseSummarizer):
     def summarization_chain(self):
         return self.summarization_prompt | self.chatmodel
 
-    def render_summary(self, content: list[Document]) -> AsyncIterator[AIMessageChunk]:
+    def summarize(self, content: list[Document]) -> AsyncIterator[AIMessageChunk] | AIMessage:
         text = self._get_text_from_content(content=content)
         structured_information = self.extraction_chain.invoke({"text": text})
-        return self.summarization_chain.astream({"text": text, **structured_information.dict()})
 
-    def get_metadata(self, file_name: str, last_chunk: dict) -> dict[str, Any]:
-        metadata = self._get_base_metadata(file_name=file_name, last_chunk=last_chunk)
+        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", flush=True)
+        print(structured_information, flush=True)
+        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", flush=True)
+
+        return self.execution_strategy.run(
+            runnable=self.summarization_chain,
+            kwargs={"text": text, **structured_information.dict()},
+        )
+
+    def get_metadata(self, file_name: str, generation_metadata: Dict) -> Dict[str, Any]:
+        metadata = self._get_base_metadata(file_name, generation_metadata)
         metadata.update({
             'chatmodel': repr(self.chatmodel),
             "summarization_prompt": repr(self.summarization_prompt),
