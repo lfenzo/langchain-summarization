@@ -26,25 +26,26 @@ class BaseSummarizer(ABC):
         ...
 
     @abstractmethod
-    def get_metadata(self, file_name: str, last_chunk: dict) -> dict[str, Any]:
+    def get_metadata(self, file: str, generation_metadata: dict) -> dict[str, Any]:
         ...
 
     @abstractmethod
     def summarize(self, content: list[Document]) -> AsyncIterator[AIMessageChunk] | AIMessage:
         ...
 
-    async def process_summary_generation(self, file_name: str):
+    async def process_summary_generation(self):
         return await self.execution_strategy.process_summary_generation(
             summarizer=self,
             content=self.loader.load(),
-            file_name=file_name,
         )
 
     def get_original_document_as_bytes(self) -> bytes:
-        has_blob_perser = hasattr(self.loader, 'blob_parser')
-        path = self.loader.blob_loader.path if has_blob_perser else self.loader.file_path
-        with open(path, 'rb') as file:
+        with open(self.get_file_path_from_loader(), 'rb') as file:
             return file.read()
+
+    def get_file_path_from_loader(self) -> str:
+        has_blob_perser = hasattr(self.loader, 'blob_parser')
+        return self.loader.blob_loader.path if has_blob_perser else self.loader.file_path
 
     def _get_text_from_content(self, content: list[Document]) -> str:
         return "".join([page.page_content + "\n" for page in content])
@@ -52,9 +53,9 @@ class BaseSummarizer(ABC):
     def _get_summary_from_chunks(self, summary_chunks: list[AIMessageChunk]) -> str:
         return "".join([chunk.content for chunk in summary_chunks])
 
-    def _get_base_metadata(self, file_name: str, generation_metadata: Dict) -> Dict[str, Any]:
+    def _get_base_metadata(self, file: str, generation_metadata: Dict) -> Dict[str, Any]:
         return {
-            'input_file_name': file_name,
+            'input_file': file,
             'summarizer': self.__class__.__name__,
             'loader': repr(self.loader),
             **generation_metadata.response_metadata,

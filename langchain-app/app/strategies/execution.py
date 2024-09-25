@@ -32,12 +32,7 @@ class StreamingStrategy(BaseExecutionStrategy):
     def run(self, runnable: Runnable, **kwargs) -> AsyncIterator[AIMessageChunk]:
         return runnable.astream(**kwargs)
 
-    async def process_summary_generation(
-        self,
-        summarizer: BaseSummarizer,
-        content: list[Document],
-        file_name: str,
-    ):
+    async def process_summary_generation(self, summarizer: BaseSummarizer, content: list[Document]):
         content_to_summarize = summarizer.loader.load()
         summary_chunks = []
 
@@ -46,9 +41,14 @@ class StreamingStrategy(BaseExecutionStrategy):
                 summary_chunks.append(chunk)
                 yield json.dumps({"content": chunk.content})
 
+            summary_metadata = summarizer.get_metadata(
+                file=summarizer.get_file_path_from_loader(),
+                generation_metadata=summary_chunks[-1]
+            )
+
             summary_id = await summarizer.store_manager.store_summary(
                 summary=summarizer._get_summary_from_chunks(summary_chunks),
-                metadata=summarizer.get_metadata(file_name, generation_metadata=summary_chunks[-1]),
+                metadata=summary_metadata,
                 document=summarizer.get_original_document_as_bytes(),
             )
 
@@ -62,17 +62,19 @@ class InvokeStrategy(BaseExecutionStrategy):
     def run(self, runnable: Runnable, **kwargs) -> AIMessage:
         return runnable.ainvoke(**kwargs)
 
-    async def process_summary_generation(
-        self,
-        summarizer: BaseSummarizer,
-        content: list[Document],
-        file_name: str,
-    ):
+    async def process_summary_generation(self, summarizer: BaseSummarizer, content: list[Document]):
         summary = await summarizer.summarize(content=summarizer.loader.load())
+
+        summary_metadata = summarizer.get_metadata(
+            file=summarizer.get_file_path_from_loader(),
+            generation_metadata=summary
+        )
+
+        print(summary)
 
         summary_id = await summarizer.store_manager.store_summary(
             summary=summary.content,
-            metadata=summarizer.get_metadata(file_name=file_name, generation_metadata=summary),
+            metadata=summary_metadata,
             document=summarizer.get_original_document_as_bytes(),
         )
 

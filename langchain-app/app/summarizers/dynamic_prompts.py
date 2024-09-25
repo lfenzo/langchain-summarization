@@ -74,18 +74,13 @@ class DynamicPromptSummarizer(BaseSummarizer):
     def summarize(self, content: list[Document]) -> AsyncIterator[AIMessageChunk] | AIMessage:
         text = self._get_text_from_content(content=content)
         structured_information = self.extraction_chain.invoke({"text": text})
-
-        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", flush=True)
-        print(structured_information, flush=True)
-        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", flush=True)
-
         return self.execution_strategy.run(
             runnable=self.summarization_chain,
             kwargs={"text": text, **structured_information.dict()},
         )
 
-    def get_metadata(self, file_name: str, generation_metadata: Dict) -> Dict[str, Any]:
-        metadata = self._get_base_metadata(file_name, generation_metadata)
+    def get_metadata(self, file: str, generation_metadata: Dict) -> Dict[str, Any]:
+        metadata = self._get_base_metadata(file=file, generation_metadata=generation_metadata)
         metadata.update({
             'chatmodel': repr(self.chatmodel),
             "summarization_prompt": repr(self.summarization_prompt),

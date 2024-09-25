@@ -38,8 +38,8 @@ class SimmpleSummarizer(BaseSummarizer):
         text = self._get_text_from_content(content=content)
         return self.execution_strategy.run(runnable=self.runnable, input=text)
 
-    def get_metadata(self, file_name: str, generation_metadata: Dict) -> Dict[str, Any]:
-        metadata = self._get_base_metadata(file_name, generation_metadata)
+    def get_metadata(self, file: str, generation_metadata: Dict) -> Dict[str, Any]:
+        metadata = self._get_base_metadata(file=file, generation_metadata=generation_metadata)
         metadata.update({
             'chatmodel': repr(self.chatmodel),
             'prompt': repr(self.prompt),

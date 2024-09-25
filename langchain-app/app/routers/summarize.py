@@ -20,10 +20,7 @@ SUMARIZERS = {
 async def upload_summary_feedback(form: FeedbackForm):
     storage_manager = StoreManagerFactory().create(manager='mongodb')
     await storage_manager.store_summary_feedback(form=form)
-    return {
-        'user': form.user,
-        'document_id': form.document_id,
-    }
+    return {'user': form.user, 'document_id': form.document_id}
 
 
 @router.post("/summarize/stream")
@@ -45,12 +42,11 @@ async def trigger_sumamrization_service(file: UploadFile, execution_strategy: st
         tmp_file.seek(0)  # Ensure the file pointer is at the start
 
         service = (
-            SUMARIZERS['dynamic-prompt']()
+            SUMARIZERS['simple']()
             .set_loader(file_type=magic.from_buffer(contents, mime=True), file_path=tmp_file.name)
             .set_chatmodel(service='ollama', model='llama3.1')
-            .set_extraction_chatmodel(service='google-genai', model='gemini-1.5-pro')
             .set_execution_strategy(execution_strategy)
             .build()
         )
 
-        return await service.process_summary_generation(file_name=file.filename)
+        return await service.process_summary_generation()
