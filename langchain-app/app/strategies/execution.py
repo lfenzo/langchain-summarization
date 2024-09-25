@@ -47,6 +47,7 @@ class StreamingStrategy(BaseExecutionStrategy):
             )
 
             summary_id = await summarizer.store_manager.store_summary(
+                _id=summary_chunks[-1].id,
                 summary=summarizer._get_summary_from_chunks(summary_chunks),
                 metadata=summary_metadata,
                 document=summarizer.get_original_document_as_bytes(),
@@ -70,9 +71,8 @@ class InvokeStrategy(BaseExecutionStrategy):
             generation_metadata=summary
         )
 
-        print(summary)
-
         summary_id = await summarizer.store_manager.store_summary(
+            _id=summary.id,
             summary=summary.content,
             metadata=summary_metadata,
             document=summarizer.get_original_document_as_bytes(),

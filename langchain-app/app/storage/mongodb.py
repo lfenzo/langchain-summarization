@@ -7,6 +7,7 @@ from app.models import FeedbackForm
 from app.storage import BaseStoreManager
 
 
+# currently mongodb can only store document of up to 16MB in size
 MAX_DOCUMENT_SIZE_IN_BYTES = 16_793_598  # obtained from pymongo error message (~16MB)
 
 
@@ -41,19 +42,25 @@ class MongoDBStoreManager(BaseStoreManager):
     def get_summary(self, **kwargs):
         return self._get_summary_document_by_id(**kwargs)
 
-    async def store_summary(self, summary: str, metadata: dict, document: bytes) -> str:
-        # currently mongodb can only store document of up to 16MB in size
+    async def store_summary(self, _id: str, summary: str, metadata: dict, document: bytes) -> str:
         document = Binary(document) if self.document_can_be_stored(document) else None
         collection = self.db[self.collection_name]
 
-        document_id = collection.insert_one({
-            "metadata": metadata,
-            "summary": summary,
-            "original_document_in_bytes": document,
-            "feedback": None,
-        }).inserted_id
+        if not collection.find_one({"_id": _id}):
+            summary_entry = {
+                "_id": _id,
+                "metadata": metadata,
+                "summary": summary,
+                "original_document_in_bytes": document,
+                "feedback": None,
+            }
+            collection.insert_one(document=summary_entry)
+        else:
+            # TODO: log here that the current summary was obtained from caching (so we're not
+            # inserting it in the database)
+            pass
 
-        return str(document_id)
+        return _id
 
     async def store_summary_feedback(self, form: FeedbackForm) -> None:
         collection = self.db[self.collection_name]

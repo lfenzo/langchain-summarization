@@ -33,7 +33,7 @@ class BaseSummarizer(ABC):
     def summarize(self, content: list[Document]) -> AsyncIterator[AIMessageChunk] | AIMessage:
         ...
 
-    async def process_summary_generation(self):
+    async def process_summary_generation(self) -> None:
         return await self.execution_strategy.process_summary_generation(
             summarizer=self,
             content=self.loader.load(),
