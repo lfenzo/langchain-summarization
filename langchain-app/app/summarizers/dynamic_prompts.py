@@ -10,6 +10,20 @@ from app.summarizers import BaseSummarizer
 
 
 class DynamicPromptSummarizer(BaseSummarizer):
+    """
+    Summarizer that dynamically generates prompts for both extraction and summarization
+    using a chat-based model. This class builds on the BaseSummarizer and uses language
+    models to extract structured data and summarize documents.
+
+    Parameters
+    ----------
+    chatmodel : BaseChatModel
+        The main chat model used for generating summaries.
+    extraction_chatmodel : BaseChatModel
+        The chat model used for extracting structured information from the documents.
+    **kwargs : dict
+        Additional keyword arguments passed to the BaseSummarizer.
+    """
 
     def __init__(
         self,
@@ -17,12 +31,24 @@ class DynamicPromptSummarizer(BaseSummarizer):
         extraction_chatmodel: BaseChatModel,
         **kwargs,
     ) -> None:
+        """
+        Initialize the DynamicPromptSummarizer with chat models for summarization and extraction.
+
+        Parameters
+        ----------
+        chatmodel : BaseChatModel
+            The main chat model used for summarization.
+        extraction_chatmodel : BaseChatModel
+            The chat model used for extracting structured information from documents.
+        **kwargs : dict
+            Additional keyword arguments passed to the BaseSummarizer.
+        """
         super().__init__(**kwargs)
         self.chatmodel = chatmodel
         self.extraction_chatmodel = extraction_chatmodel
 
     @property
-    def extraction_prompt(self):
+    def extraction_prompt(self) -> ChatPromptTemplate:
         return ChatPromptTemplate.from_messages([
             (
                 "human",
@@ -38,7 +64,7 @@ class DynamicPromptSummarizer(BaseSummarizer):
         ])
 
     @property
-    def summarization_prompt(self):
+    def summarization_prompt(self) -> ChatPromptTemplate:
         return ChatPromptTemplate.from_messages([
             ('human', "You an expert AI multi-lingual summary writer."),
             ('human', "Just write the summary, no need for introduction phrases."),
@@ -72,6 +98,23 @@ class DynamicPromptSummarizer(BaseSummarizer):
         return self.summarization_prompt | self.chatmodel
 
     def summarize(self, content: list[Document]) -> AsyncIterator[AIMessageChunk] | AIMessage:
+        """
+        Summarizes the provided documents after extracting structured information.
+
+        The text content is first extracted from the documents, then structured information
+        is extracted using the extraction chain. Finally, the summarization chain is invoked
+        to generate the final summary.
+
+        Parameters
+        ----------
+        content : list[Document]
+            A list of documents to summarize.
+
+        Returns
+        -------
+        AsyncIterator[AIMessageChunk] or AIMessage
+            An asynchronous iterator over message chunks or a complete AI message.
+        """
         text = self._get_text_from_content(content=content)
         structured_information = self.extraction_chain.invoke({"text": text})
         return self.execution_strategy.run(
@@ -80,6 +123,25 @@ class DynamicPromptSummarizer(BaseSummarizer):
         )
 
     def get_metadata(self, file: str, generation_metadata: Dict) -> Dict[str, Any]:
+        """
+        Generates metadata for the summarization process, including model and prompt information.
+
+        This method builds on the base metadata by adding details specific to the summarization
+        and extraction chat models and prompts.
+
+        Parameters
+        ----------
+        file : str
+            The path or identifier of the file being summarized.
+        generation_metadata : dict
+            A dictionary containing metadata related to the summarization process.
+
+        Returns
+        -------
+        dict[str, Any]
+            A dictionary containing metadata for the summarization, including information
+            on the chat models, prompts, and extraction schema.
+        """
         metadata = self._get_base_metadata(file=file, generation_metadata=generation_metadata)
         metadata.update({
             'chatmodel': repr(self.chatmodel),
