@@ -18,7 +18,7 @@ SUMARIZERS = {
 
 @router.post("/summarize/feedback")
 async def upload_summary_feedback(form: FeedbackForm):
-    storage_manager = StoreManagerFactory().create(manager='mongodb')
+    storage_manager = StoreManagerFactory().create(store_manager='mongodb')
     await storage_manager.store_summary_feedback(form=form)
     return {'user': form.user, 'document_id': form.document_id}
 

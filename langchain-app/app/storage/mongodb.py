@@ -199,7 +199,7 @@ class MongoDBStoreManager(BaseStoreManager):
         }
 
         update_result = collection.update_one(
-            {"_id": ObjectId(form.document_id)},
+            {"_id": form.document_id},
             {"$set": {"feedback": feedback_dict}}
         )
 
