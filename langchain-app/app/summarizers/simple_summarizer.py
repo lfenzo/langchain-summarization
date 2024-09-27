@@ -48,7 +48,7 @@ class SimmpleSummarizer(BaseSummarizer):
             (msg_type, "You are an expert multi-language AI summary writer."),
             (msg_type, "Produce a summary of the provided text."),
             (msg_type, "Do not provide an introduction, just the summary."),
-            (msg_type, "The summary must contain ~25% of the length of the original"),
+            (msg_type, "The summary must contain ~30% of the length of the original"),
             (msg_type, "Summary language must be the same as the original"),
             (msg_type, "Tailor the summary to what you assume to be the document audience"),
             (msg_type, "Don't ask for follow-up questions."),
