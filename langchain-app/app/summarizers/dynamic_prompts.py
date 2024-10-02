@@ -66,24 +66,46 @@ class DynamicPromptSummarizer(BaseSummarizer):
     @property
     def summarization_prompt(self) -> ChatPromptTemplate:
         return ChatPromptTemplate.from_messages([
-            ('human', "You an expert AI multi-lingual summary writer."),
-            ('human', "Just write the summary, no need for introduction phrases."),
-            ('human', "The summary must contain ~25% of the length of the original text."),
-            ('human', "Ensure that the summary is in the same language as the original."),
             (
-                'human',
+                "human",
                 """
-                Here are further information to guide you when generating the summary. Make sure
-                that all these points are taken in consideretion in the appropriate summary:
-                - Text Type: {text_type}
-                - Media Type: {media_type}
-                - Document Domain: {document_domain}
-                - Audience: {audience}
-                - Audience Expertise: {audience}
-                - Document Key Points: {key_points}
+                You are an advanced AI specializing in identifying and summarizing the most
+                important and relevant information from complex documents. Your task is to create
+                a detailed summary by focusing on the key ideas, core arguments, and supporting
+                details.
                 """
             ),
-            ('human', "{text}"),
+            (
+                "human",
+                """
+                Ensure the summary is approximately 30% of the original length. Prioritize the
+                following:
+                - Major themes and critical points
+                - Important supporting details that enhance the key points
+                - Exclude redundant or trivial information
+                """
+            ),
+            (
+                "human",
+                """
+                Follow these guidelines when generating the summary:
+                - Text Type: {text_type} (e.g., report, presentation, article)
+                - Media Type: {media_type} (e.g., PDF, PPT, DOC)
+                - Domain: {document_domain} (e.g., finance, medical, legal)
+                - Audience: {audience} (e.g., general, experts)
+                - Audience Expertise: {audience_expertise} (e.g., beginner, intermediate, advanced)
+                - Focus on Document Key Points: {key_points}
+                """
+            ),
+            (
+                "human",
+                """
+                The summary must be written in the same language as the input document, maintaining
+                the document’s formal tone and style. Avoid introductory phrases and external
+                knowledge. Simply focus on what is present in the document itself.
+                """
+            ),
+            ("human", "{text}"),
         ])
 
     @property

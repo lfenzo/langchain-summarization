@@ -45,14 +45,33 @@ class SimmpleSummarizer(BaseSummarizer):
     def prompt(self):
         msg_type = "system" if self.has_system_msg_support else "human"
         return ChatPromptTemplate.from_messages([
-            (msg_type, "You are an expert multi-language AI summary writer."),
-            (msg_type, "Produce a summary of the provided text."),
-            (msg_type, "Do not provide an introduction, just the summary."),
-            (msg_type, "The summary must contain ~30% of the length of the original"),
-            (msg_type, "Summary language must be the same as the original"),
-            (msg_type, "Tailor the summary to what you assume to be the document audience"),
-            (msg_type, "Don't ask for follow-up questions."),
-            ('human', "{text}"),
+            (
+                msg_type,
+                """
+                You are an AI specialized in multi-language summaries. Your task is to summarize
+                the provided text by focusing on the key points, central themes, and significant
+                details.
+                """
+            ),
+            (
+                msg_type,
+                """
+                Ensure the summary is approximately 30% of the original text length. Avoid
+                superficial details or unnecessary information.
+                """
+            ),
+            (
+                msg_type,
+                """
+                Follow these additional guidelines to generate the summary:
+                - Produce the summary in the same language as the input text
+                - Assume the document’s intended audience
+                - Keep the tone and style consistent with the original
+                - Do not add introductions, conclusions, or external knowledge
+                - Do not use verbs in the first person
+                """
+            ),
+            ("human", "{text}")
         ])
 
     @property
