@@ -170,10 +170,12 @@ class BaseSummarizer(ABC):
         dict[str, Any]
             A dictionary containing the base metadata for the summarization process.
         """
+        response_metadata = generation_metadata.response_metadata
+        del response_metadata["message"]
         return {
             'input_file': file,
             'summarizer': self.__class__.__name__,
             'loader': repr(self.loader),
-            **generation_metadata.response_metadata,
+            **response_metadata,
             **generation_metadata.usage_metadata,
         }

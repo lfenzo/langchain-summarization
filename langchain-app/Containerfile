@@ -11,7 +11,7 @@ WORKDIR /langchain-app
 
 COPY requirements.txt requirements.txt
 
-COPY langchain langchain
+COPY app app
 
 RUN pip install -r requirements.txt
 

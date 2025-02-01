@@ -16,3 +16,4 @@ redis
 requests
 sse_starlette
 unstructured
+uvicorn
