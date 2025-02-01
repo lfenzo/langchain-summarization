@@ -33,11 +33,12 @@ For more detailed information read [this article](https://lfenzo.github.io/proje
     ```
     Ensure that you system supports GPU passthough for the LLM and Transcription services.
 
-1) Access the API:
+1) Make sure that the LLM of your choice is pulled in the Ollama Server:
+    ```bash
+    podman exec langchain-summarization_ollama-server_1 ollama pull <your_llm_here>
+    ```
 
-    The FastAPI service is available at `http://0.0.0.0:8000`
-
-1) Test the summarization endpoint:
+1) Test the summarization endpoint in the FastAPI service available at `http://0.0.0.0:8000`:
     ```bash
     curl -X POST "http://0.0.0.0:8000/summarize" \
          -F "file=@path/to/your/file.pdf;type=application/octet-stream" \
